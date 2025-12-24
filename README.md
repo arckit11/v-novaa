@@ -1,69 +1,62 @@
-# Welcome to your Lovable project
+# Smooth Cart Voice
 
-## Project info
+A voice-enabled e-commerce application designed to provide a seamless shopping experience using voice commands. Built with React, Vite, and Vapi.ai.
 
-**URL**: https://lovable.dev/projects/70ab09ad-59c5-4925-8a5f-6be887043d99
+## Features
 
-## How can I edit this code?
+- **Voice-Powered Navigation & Shopping**: Use voice commands to browse categories, filter products, and add items to your cart using Vapi.ai and Gemini.
+- **Dynamic Product Filtering**: Filter products by price, brand, and category through voice or UI.
+- **Smart Cart Management**: Voice-controlled cart operations.
+- **Modern UI/UX**: Built with Shadcn UI, Tailwind CSS, and Framer Motion for a smooth and responsive interface.
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React, TypeScript, Vite
+- **Styling**: Tailwind CSS, Shadcn UI
+- **Voice AI**: Vapi.ai, Google Gemini AI
+- **State Management**: React Context, TanStack Query
+- **Routing**: React Router DOM
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/70ab09ad-59c5-4925-8a5f-6be887043d99) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (v18 or higher)
+- npm or yarn
+- Vapi.ai API Key and Assistant ID
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/ayushisingh0509/v-nova.git
+    cd v-nova
+    ```
 
-Follow these steps:
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3.  Set up environment variables:
+    Create a `.env` file in the root directory and add your Vapi credentials:
+    ```env
+    VITE_VAPI_API_KEY=your_api_key_here
+    VITE_VAPI_ASSISTANT_ID=your_assistant_id_here
+    ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4.  Run the development server:
+    ```bash
+    npm run dev
+    ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Usage
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Click the microphone button in the bottom left corner to activate the voice assistant. You can say commands like:
+- "Show me electronics"
+- "Add headphones to cart"
+- "Go to checkout"
 
-**Edit a file directly in GitHub**
+## License
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/70ab09ad-59c5-4925-8a5f-6be887043d99) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+MIT
