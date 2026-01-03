@@ -37,6 +37,8 @@ const PaymentPage = () => {
     cvv: "",
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     const userInfo = getUserInfo();
     setFormData((prev) => ({
@@ -97,14 +99,22 @@ const PaymentPage = () => {
 
   const handleFormChange =
     (field: keyof typeof formData) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value;
-      setFormData((prev) => {
-        const newData = { ...prev, [field]: newValue };
-        updateUserInfo(newData);
-        return newData;
-      });
-    };
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.value;
+        setFormData((prev) => {
+          const newData = { ...prev, [field]: newValue };
+          updateUserInfo(newData);
+          return newData;
+        });
+        // Clear error when user types
+        if (errors[field]) {
+          setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors[field];
+            return newErrors;
+          });
+        }
+      };
 
   // Function to determine if a field is highlighted
   const isFieldHighlighted = (fieldName: string) => {
@@ -115,8 +125,39 @@ const PaymentPage = () => {
   const tax = subtotal * 0.07; // 7% tax
   const total = subtotal + shippingCost + tax;
 
-  const handlePayment = (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid";
+
+    if (!formData.address.trim()) newErrors.address = "Address is required";
+    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+
+    if (paymentMethod === "credit-card") {
+      if (!formData.cardName.trim()) newErrors.cardName = "Card name is required";
+      if (!formData.cardNumber.trim()) newErrors.cardNumber = "Card number is required";
+      if (!formData.expiryDate.trim()) newErrors.expiryDate = "Expiry date is required";
+      if (!formData.cvv.trim()) newErrors.cvv = "CVV is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handlePayment = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields accurately.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     // Simulate payment processing
@@ -125,6 +166,19 @@ const PaymentPage = () => {
       navigate("/confirmation");
     }, 2000);
   };
+
+  useEffect(() => {
+    const handleVoiceOrderCompletion = () => {
+      console.log("Trigger-order-completion event received!"); // Debug log
+      handlePayment();
+    };
+
+    window.addEventListener("trigger-order-completion", handleVoiceOrderCompletion);
+
+    return () => {
+      window.removeEventListener("trigger-order-completion", handleVoiceOrderCompletion);
+    };
+  }, [formData, paymentMethod]); // Added dependencies to ensure validation works with current state
 
   return (
     <Layout>
@@ -148,11 +202,16 @@ const PaymentPage = () => {
                     value={formData.name}
                     onChange={handleFormChange("name")}
                     className={
-                      isFieldHighlighted("name")
-                        ? "ring-2 ring-green-500 focus:ring-green-500"
-                        : ""
+                      errors.name
+                        ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                        : isFieldHighlighted("name")
+                          ? "ring-2 ring-green-500 focus:ring-green-500"
+                          : ""
                     }
                   />
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                  )}
                   {isFieldHighlighted("name") && (
                     <div className="text-green-600 text-xs mt-1 flex items-center">
                       <CheckCircle2 className="h-3 w-3 mr-1" /> Updated by voice
@@ -170,11 +229,16 @@ const PaymentPage = () => {
                     value={formData.email}
                     onChange={handleFormChange("email")}
                     className={
-                      isFieldHighlighted("email")
-                        ? "ring-2 ring-green-500 focus:ring-green-500"
-                        : ""
+                      errors.email
+                        ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                        : isFieldHighlighted("email")
+                          ? "ring-2 ring-green-500 focus:ring-green-500"
+                          : ""
                     }
                   />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                  )}
                   {isFieldHighlighted("email") && (
                     <div className="text-green-600 text-xs mt-1 flex items-center">
                       <CheckCircle2 className="h-3 w-3 mr-1" /> Updated by voice
@@ -191,11 +255,16 @@ const PaymentPage = () => {
                     value={formData.address}
                     onChange={handleFormChange("address")}
                     className={
-                      isFieldHighlighted("address")
-                        ? "ring-2 ring-green-500 focus:ring-green-500"
-                        : ""
+                      errors.address
+                        ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                        : isFieldHighlighted("address")
+                          ? "ring-2 ring-green-500 focus:ring-green-500"
+                          : ""
                     }
                   />
+                  {errors.address && (
+                    <p className="text-red-500 text-xs mt-1">{errors.address}</p>
+                  )}
                   {isFieldHighlighted("address") && (
                     <div className="text-green-600 text-xs mt-1 flex items-center">
                       <CheckCircle2 className="h-3 w-3 mr-1" /> Updated by voice
@@ -212,11 +281,16 @@ const PaymentPage = () => {
                     value={formData.phone}
                     onChange={handleFormChange("phone")}
                     className={
-                      isFieldHighlighted("phone")
-                        ? "ring-2 ring-green-500 focus:ring-green-500"
-                        : ""
+                      errors.phone
+                        ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                        : isFieldHighlighted("phone")
+                          ? "ring-2 ring-green-500 focus:ring-green-500"
+                          : ""
                     }
                   />
+                  {errors.phone && (
+                    <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                  )}
                   {isFieldHighlighted("phone") && (
                     <div className="text-green-600 text-xs mt-1 flex items-center">
                       <CheckCircle2 className="h-3 w-3 mr-1" /> Updated by voice
@@ -286,11 +360,16 @@ const PaymentPage = () => {
                           value={formData.cardName}
                           onChange={handleFormChange("cardName")}
                           className={
-                            isFieldHighlighted("card name")
-                              ? "ring-2 ring-green-500 focus:ring-green-500"
-                              : ""
+                            errors.cardName
+                              ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                              : isFieldHighlighted("card name")
+                                ? "ring-2 ring-green-500 focus:ring-green-500"
+                                : ""
                           }
                         />
+                        {errors.cardName && (
+                          <p className="text-red-500 text-xs mt-1">{errors.cardName}</p>
+                        )}
                         {isFieldHighlighted("card name") && (
                           <div className="text-green-600 text-xs mt-1 flex items-center">
                             <CheckCircle2 className="h-3 w-3 mr-1" /> Updated by
@@ -307,11 +386,16 @@ const PaymentPage = () => {
                           value={formData.cardNumber}
                           onChange={handleFormChange("cardNumber")}
                           className={
-                            isFieldHighlighted("card number")
-                              ? "ring-2 ring-green-500 focus:ring-green-500"
-                              : ""
+                            errors.cardNumber
+                              ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                              : isFieldHighlighted("card number")
+                                ? "ring-2 ring-green-500 focus:ring-green-500"
+                                : ""
                           }
                         />
+                        {errors.cardNumber && (
+                          <p className="text-red-500 text-xs mt-1">{errors.cardNumber}</p>
+                        )}
                         {isFieldHighlighted("card number") && (
                           <div className="text-green-600 text-xs mt-1 flex items-center">
                             <CheckCircle2 className="h-3 w-3 mr-1" /> Updated by
@@ -329,11 +413,16 @@ const PaymentPage = () => {
                             value={formData.expiryDate}
                             onChange={handleFormChange("expiryDate")}
                             className={
-                              isFieldHighlighted("card expiry date")
-                                ? "ring-2 ring-green-500 focus:ring-green-500"
-                                : ""
+                              errors.expiryDate
+                                ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                                : isFieldHighlighted("card expiry date")
+                                  ? "ring-2 ring-green-500 focus:ring-green-500"
+                                  : ""
                             }
                           />
+                          {errors.expiryDate && (
+                            <p className="text-red-500 text-xs mt-1">{errors.expiryDate}</p>
+                          )}
                           {isFieldHighlighted("card expiry date") && (
                             <div className="text-green-600 text-xs mt-1 flex items-center">
                               <CheckCircle2 className="h-3 w-3 mr-1" /> Updated
@@ -350,11 +439,16 @@ const PaymentPage = () => {
                             value={formData.cvv}
                             onChange={handleFormChange("cvv")}
                             className={
-                              isFieldHighlighted("CVV")
-                                ? "ring-2 ring-green-500 focus:ring-green-500"
-                                : ""
+                              errors.cvv
+                                ? "ring-2 ring-red-500 focus:ring-red-500 border-red-500"
+                                : isFieldHighlighted("CVV")
+                                  ? "ring-2 ring-green-500 focus:ring-green-500"
+                                  : ""
                             }
                           />
+                          {errors.cvv && (
+                            <p className="text-red-500 text-xs mt-1">{errors.cvv}</p>
+                          )}
                           {isFieldHighlighted("CVV") && (
                             <div className="text-green-600 text-xs mt-1 flex items-center">
                               <CheckCircle2 className="h-3 w-3 mr-1" /> Updated

@@ -92,6 +92,12 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
     // --- Intent Handlers ---
 
     const classifyPrimaryIntent = async (transcript: string): Promise<string> => {
+        // Manual overrides for critical path commands to ensure reliability
+        const lower = transcript.toLowerCase();
+        if (lower.includes("checkout") || lower.includes("place order") || lower.includes("complete purchase") || lower.includes("buy now")) {
+            return "order_completion";
+        }
+
         try {
             const prompt = prompts.masterIntentClassifier.replace("{transcript}", transcript);
             const intent = (await runGeminiText(prompt)).trim();
@@ -150,17 +156,17 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
             const target = parsed.target?.toLowerCase();
 
             if (target === "gym") {
-                clearFilters();
+                // clearFilters(); // Removed to prevent auto-removal
                 await navigate("/products/gym");
                 logAction("Showing gym products");
                 return true;
             } else if (target === "yoga") {
-                clearFilters();
+                // clearFilters(); // Removed to prevent auto-removal
                 await navigate("/products/yoga");
                 logAction("Showing yoga products");
                 return true;
             } else if (target === "running") {
-                clearFilters();
+                // clearFilters(); // Removed to prevent auto-removal
                 await navigate("/products/jogging");
                 logAction("Showing running gear");
                 return true;
@@ -409,8 +415,13 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
             const response = (await runGeminiText(prompt)).trim().toLowerCase();
 
             if (response === "yes") {
-                await navigate("/payment");
-                logAction("Proceeding to payment");
+                if (location.pathname === "/payment") {
+                    window.dispatchEvent(new CustomEvent("trigger-order-completion"));
+                    logAction("Submitting order");
+                } else {
+                    await navigate("/payment");
+                    logAction("Proceeding to payment");
+                }
                 return true;
             }
             return false;
@@ -428,6 +439,8 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         try {
             const primaryIntent = await classifyPrimaryIntent(transcript);
             console.log("Primary Intent:", primaryIntent);
+            logAction(`Intent: ${primaryIntent}`);
+
 
             let handled = false;
 

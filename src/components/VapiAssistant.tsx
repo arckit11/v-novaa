@@ -6,10 +6,27 @@ import { useVoiceCommandHandlers } from "./useVoiceCommandHandlers";
 export const VapiAssistant = () => {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isSpeechActive, setIsSpeechActive] = useState(false);
+  const [position, setPosition] = useState({ x: 24, y: typeof window !== 'undefined' ? window.innerHeight - 80 : 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number, y: number } | null>(null);
+  const mouseDownStartRef = useRef<{ x: number, y: number } | null>(null);
+  const hasMovedRef = useRef(false);
+
   const vapiRef = useRef<any>(null);
   const { processVoiceCommand } = useVoiceCommandHandlers();
 
+  // Use a ref to always keep the latest version of processVoiceCommand
+  // preventing stale closures in the Vapi event listener
+  const processVoiceCommandRef = useRef(processVoiceCommand);
+
   useEffect(() => {
+    processVoiceCommandRef.current = processVoiceCommand;
+  }, [processVoiceCommand]);
+
+  useEffect(() => {
+    // Initialize position on client-side mount
+    setPosition({ x: 24, y: window.innerHeight - 80 });
+
     const ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID;
     const API_KEY = import.meta.env.VITE_VAPI_API_KEY;
 
@@ -48,9 +65,14 @@ export const VapiAssistant = () => {
 
         // Pass the transcript to our restored client-side Gemini logic
         if (transcriptText) {
-          await processVoiceCommand(transcriptText);
+          await processVoiceCommandRef.current(transcriptText);
         }
       }
+    });
+
+    // Auto-start the assistant
+    vapi.start(ASSISTANT_ID).catch((error: any) => {
+      console.error("Failed to auto-start Vapi:", error);
     });
 
     return () => {
@@ -58,7 +80,75 @@ export const VapiAssistant = () => {
     };
   }, []);
 
-  const toggleCall = () => {
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging || !dragStartRef.current) return;
+
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+
+      // Calculate new position
+      let newX = clientX - dragStartRef.current.x;
+      let newY = clientY - dragStartRef.current.y;
+
+      // Simple boundary checking to keep it somewhat on screen
+      const boundsPadding = 10;
+      const maxX = window.innerWidth - 60; // 60 is approx width
+      const maxY = window.innerHeight - 60;
+
+      newX = Math.max(boundsPadding, Math.min(newX, maxX));
+      newY = Math.max(boundsPadding, Math.min(newY, maxY));
+
+      setPosition({ x: newX, y: newY });
+
+      // Check if moved more than a threshold to consider it a drag
+      if (mouseDownStartRef.current) {
+        const dist = Math.hypot(clientX - mouseDownStartRef.current.x, clientY - mouseDownStartRef.current.y);
+        if (dist > 5) {
+          hasMovedRef.current = true;
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      dragStartRef.current = null;
+      mouseDownStartRef.current = null;
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleMouseMove);
+      window.addEventListener('touchend', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+    dragStartRef.current = { x: clientX - position.x, y: clientY - position.y };
+    mouseDownStartRef.current = { x: clientX, y: clientY };
+    setIsDragging(true);
+    hasMovedRef.current = false;
+  };
+
+  const toggleCall = (e: React.MouseEvent) => {
+    // Prevent toggle if we just dragged
+    if (hasMovedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     const vapi = vapiRef.current;
     if (!vapi) return;
 
@@ -73,16 +163,20 @@ export const VapiAssistant = () => {
 
 
   return (
-    <div className="fixed bottom-6 left-6 z-50">
+    <div
+      className="fixed z-50 touch-none"
+      style={{ left: position.x, top: position.y }}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleMouseDown}
+    >
       <button
-        className={`flex items-center justify-center rounded-full w-14 h-14 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg transition-all duration-300 ${isSessionActive ? "shadow-xl ring-2 ring-white/30" : "shadow-md"
+        className={`flex items-center justify-center rounded-full w-14 h-14 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg transition-all duration-300 ${isDragging ? "cursor-grabbing scale-105" : "cursor-grab"} ${isSessionActive ? "shadow-xl ring-2 ring-white/30" : "shadow-md"
           }`}
         onClick={toggleCall}
         aria-label="Voice Assistant"
         title={isSessionActive ? "End Voice Session" : "Start Voice Assistant"}
         style={{
           transform: "scale(1)",
-          transition: "transform 0.2s ease-in-out",
         }}
       >
         {isSessionActive ? (

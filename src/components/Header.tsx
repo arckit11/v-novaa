@@ -22,10 +22,10 @@ export const Header = ({ transparent = false }: HeaderProps) => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="font-bold text-xl">
           <span className="bg-gradient-to-r from-purple-600 to-electric-blue-600 bg-clip-text text-transparent">
-            VoiceShop
+            VoixNova
           </span>
         </Link>
-        
+
         <div className="hidden md:flex items-center gap-6">
           <Link to="/categories" className="text-sm font-medium hover:text-primary transition-colors">
             Shop
@@ -34,7 +34,7 @@ export const Header = ({ transparent = false }: HeaderProps) => {
             All Products
           </Link>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="hidden md:flex">
             <Search size={18} />
@@ -42,9 +42,9 @@ export const Header = ({ transparent = false }: HeaderProps) => {
           <Button variant="ghost" size="icon" className="hidden md:flex">
             <User size={18} />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="relative"
             onClick={() => navigate('/cart')}
           >
