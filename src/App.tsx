@@ -17,38 +17,41 @@ import { CartProvider } from "./context/CartContext";
 import { VoiceListener } from "./components/VoiceListener";
 import { FilterProvider } from "./context/FilterContext";
 import { ProductProvider } from "./context/ProductContext";
+import { LanguageProvider } from "./context/LanguageContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <CartProvider>
-      <FilterProvider>
-        <ProductProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<CategorySelectionPage />} />
-                <Route path="/categories" element={<CategorySelectionPage />} />
-                <Route
-                  path="/products/:category"
-                  element={<ProductListingPage />}
-                />
-                <Route path="/product/:id" element={<ProductDetailPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/payment" element={<PaymentPage />} />
-                <Route path="/confirmation" element={<ConfirmationPage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <VoiceListener />
-              {/*<VoiceAssistant /> */}
-              <VapiAssistant />
-            </BrowserRouter>
-          </TooltipProvider>
-        </ProductProvider>
-      </FilterProvider>
+      <LanguageProvider>
+        <FilterProvider>
+          <ProductProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<CategorySelectionPage />} />
+                  <Route path="/categories" element={<CategorySelectionPage />} />
+                  <Route
+                    path="/products/:category"
+                    element={<ProductListingPage />}
+                  />
+                  <Route path="/product/:id" element={<ProductDetailPage />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/payment" element={<PaymentPage />} />
+                  <Route path="/confirmation" element={<ConfirmationPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <VoiceListener />
+                {/*<VoiceAssistant /> */}
+                <VapiAssistant />
+              </BrowserRouter>
+            </TooltipProvider>
+          </ProductProvider>
+        </FilterProvider>
+      </LanguageProvider>
     </CartProvider>
   </QueryClientProvider>
 );

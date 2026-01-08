@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { useCart } from "@/context/CartContext";
 import { useProduct } from "@/context/ProductContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { motion } from "framer-motion";
 
 const ProductDetailPage = () => {
@@ -25,6 +26,7 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { addItem } = useCart();
+  const { t } = useLanguage();
 
   const {
     selectedSize,
@@ -49,8 +51,8 @@ const ProductDetailPage = () => {
     if (!selectedSize) {
       setShowError(true);
       toast({
-        title: "Please select a size",
-        description: "You need to select a size before adding to cart",
+        title: t('product.selectSize'),
+        description: t('product.selectSizeDesc'),
         variant: "destructive",
       });
       return;
@@ -67,11 +69,11 @@ const ProductDetailPage = () => {
       });
 
       toast({
-        title: "Added to cart",
-        description: `${product.name} (${selectedSize}) x ${quantity} added to your cart`,
+        title: t('product.added'),
+        description: `${product.name} (${selectedSize}) x ${quantity} ${t('product.added')}`,
         action: (
           <Button variant="outline" onClick={() => navigate("/cart")}>
-            View Cart
+            {t('product.viewCart')}
           </Button>
         ),
       });
@@ -106,7 +108,7 @@ const ProductDetailPage = () => {
                     />
                   ))}
                 </div>
-                <span className="ml-2 text-sm text-gray-500">(42 reviews)</span>
+                <span className="ml-2 text-sm text-gray-500">(42 {t('product.reviews')})</span>
               </div>
 
               <div className="mt-4">
@@ -116,18 +118,18 @@ const ProductDetailPage = () => {
               </div>
 
               <div className="mt-6">
-                <h3 className="text-sm font-medium">Description</h3>
+                <h3 className="text-sm font-medium">{t('product.description')}</h3>
                 <p className="mt-2 text-gray-600">{product.description}</p>
               </div>
 
               {/* Size selection */}
               <div className="mt-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Size</h3>
+                  <h3 className="text-sm font-medium">{t('product.size')}</h3>
                   {showError && (
                     <span className="text-red-500 text-xs flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
-                      Please select a size
+                      {t('product.selectSize')}
                     </span>
                   )}
                 </div>
@@ -138,11 +140,10 @@ const ProductDetailPage = () => {
                       type="button"
                       data-size={size}
                       variant={selectedSize === size ? "default" : "outline"}
-                      className={`relative ${
-                        selectedSize === size
-                          ? "ring-2 ring-offset-2 ring-blue-500"
-                          : ""
-                      }`}
+                      className={`relative ${selectedSize === size
+                        ? "ring-2 ring-offset-2 ring-blue-500"
+                        : ""
+                        }`}
                       onClick={() => {
                         setSelectedSize(size);
                         setShowError(false);
@@ -159,7 +160,7 @@ const ProductDetailPage = () => {
 
               {/* Quantity selector */}
               <div className="mt-6">
-                <h3 className="text-sm font-medium">Quantity</h3>
+                <h3 className="text-sm font-medium">{t('product.quantity')}</h3>
                 <div className="flex items-center mt-2">
                   <Button
                     variant="outline"
@@ -194,7 +195,7 @@ const ProductDetailPage = () => {
                   onClick={handleAddToCart}
                 >
                   <ShoppingCart className="mr-2 h-4 w-4" />
-                  Add to Cart
+                  {t('product.addToCart')}
                 </Button>
                 <Button variant="outline">
                   <Heart className="h-4 w-4" />
@@ -205,9 +206,9 @@ const ProductDetailPage = () => {
         </div>
       ) : (
         <div className="container mx-auto px-4 py-8 text-center">
-          <h2 className="text-2xl font-bold">Product not found</h2>
+          <h2 className="text-2xl font-bold">{t('product.notFound')}</h2>
           <Button className="mt-4" onClick={() => navigate("/products")}>
-            Back to Products
+            {t('product.back')}
           </Button>
         </div>
       )}

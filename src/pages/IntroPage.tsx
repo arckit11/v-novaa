@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/Layout";
 import { ArrowRight, Sparkles, ShoppingBag, Mic } from "lucide-react";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const IntroPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -78,7 +80,7 @@ const IntroPage = () => {
               variants={item}
               className="text-5xl md:text-7xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-pink-100"
             >
-              VOIX NOVA
+              {t('intro.title')}
             </motion.h1>
 
             <motion.div
@@ -87,7 +89,7 @@ const IntroPage = () => {
             >
               <div className="h-0.5 w-12 bg-gradient-to-r from-purple-500 to-transparent rounded"></div>
               <p className="text-lg md:text-xl text-purple-200 tracking-wider uppercase font-light">
-                AI Shopping Assistant
+                {t('intro.subtitle')}
               </p>
               <div className="h-0.5 w-12 bg-gradient-to-l from-purple-500 to-transparent rounded"></div>
             </motion.div>
@@ -97,8 +99,7 @@ const IntroPage = () => {
               variants={item}
               className="text-lg md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed"
             >
-              Your personal AI-powered shopping companion that helps you find
-              the perfect fitness gear with voice commands.
+              {t('intro.description')}
             </motion.p>
 
             {/* AI Assistant Circle */}
@@ -126,7 +127,7 @@ const IntroPage = () => {
                         ))}
                       </div>
                       <div className="mt-2 text-white text-xs font-bold uppercase tracking-wider">
-                        Active
+                        {t('intro.active')}
                       </div>
                     </div>
                   </div>
@@ -148,7 +149,7 @@ const IntroPage = () => {
               </div>
               <div className="mt-5 text-center">
                 <p className="text-gray-300 italic">
-                  "Hi there! I'm Voix Nova, your personal shopping assistant."
+                  {t('intro.greeting')}
                 </p>
               </div>
             </motion.div>
@@ -160,18 +161,18 @@ const IntroPage = () => {
             >
               {[
                 {
-                  title: "Voice Shopping",
-                  description: "Find products using natural voice commands",
+                  title: t('intro.feature.voice'),
+                  description: t('intro.feature.voiceDesc'),
                   icon: <Mic className="w-6 h-6" />,
                 },
                 {
-                  title: "Smart Recommendations",
-                  description: "Get personalized product suggestions",
+                  title: t('intro.feature.recommend'),
+                  description: t('intro.feature.recommendDesc'),
                   icon: <Sparkles className="w-6 h-6" />,
                 },
                 {
-                  title: "Seamless Experience",
-                  description: "Shop hands-free from browsing to checkout",
+                  title: t('intro.feature.seamless'),
+                  description: t('intro.feature.seamlessDesc'),
                   icon: <ShoppingBag className="w-6 h-6" />,
                 },
               ].map((feature, i) => (
@@ -196,11 +197,11 @@ const IntroPage = () => {
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-6 px-8 rounded-full text-lg flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300"
                 onClick={() => navigate("/categories")}
               >
-                Get Started <ArrowRight className="ml-2" size={18} />
+                {t('intro.getStarted')} <ArrowRight className="ml-2" size={18} />
               </Button>
 
               <p className="text-sm text-gray-400">
-                Use the voice assistant at the bottom left to navigate by voice
+                {t('intro.footer')}
               </p>
             </motion.div>
           </motion.div>

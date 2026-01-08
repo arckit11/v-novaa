@@ -17,15 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useFilters } from "@/context/FilterContext";
-
-const sortOptions = [
-  { label: "Price: Low to High", value: "price-asc" },
-  { label: "Price: High to Low", value: "price-desc" },
-  { label: "Newest", value: "newest" },
-  { label: "Rating", value: "rating" },
-];
+import { useLanguage } from "@/context/LanguageContext";
 
 const ProductListingPage = () => {
+  const { t } = useLanguage();
+
+  const sortOptions = [
+    { label: t('sort.priceAsc'), value: "price-asc" },
+    { label: t('sort.priceDesc'), value: "price-desc" },
+    { label: t('sort.newest'), value: "newest" },
+    { label: t('sort.rating'), value: "rating" },
+  ];
   const { category } = useParams<{ category: string }>();
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState("newest");
@@ -41,11 +43,13 @@ const ProductListingPage = () => {
 
   // Add the missing getCategoryTitle function
   const getCategoryTitle = () => {
-    if (category === "all") return "All Products";
+    if (category === "all") return t('listing.products');
     const categoryInfo = filterOptions.categories.find(
       (c) => c.id === category
     );
-    return categoryInfo ? categoryInfo.name : "Products";
+    // Assuming category names from data might match keys or be used as is
+    // For now, we will use the name from data, but fall back to 'Products' translated
+    return categoryInfo ? categoryInfo.name : t('listing.products');
   };
 
   useEffect(() => {
@@ -155,7 +159,7 @@ const ProductListingPage = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">{getCategoryTitle()}</h1>
           <p className="text-gray-600">
-            {filteredProducts.length} products available
+            {filteredProducts.length} {t('listing.available')}
           </p>
         </div>
 
@@ -164,14 +168,14 @@ const ProductListingPage = () => {
           <div className="hidden lg:block w-64 flex-shrink-0">
             <div className="sticky top-24 bg-background p-4 rounded-lg border">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold">Filters</h3>
+                <h3 className="font-semibold">{t('listing.filters')}</h3>
                 {activeFilterCount > 0 && (
                   <Button
                     variant="ghost"
                     className="text-xs h-8 px-2"
                     onClick={clearFilters}
                   >
-                    Clear All
+                    {t('listing.clearAll')}
                   </Button>
                 )}
               </div>
@@ -179,7 +183,7 @@ const ProductListingPage = () => {
               <div className="space-y-6">
                 {/* Price Range */}
                 <div>
-                  <h4 className="font-medium text-sm mb-3">Price Range</h4>
+                  <h4 className="font-medium text-sm mb-3">{t('filter.price')}</h4>
                   <Slider
                     defaultValue={[0, 200]}
                     max={200}
@@ -196,7 +200,7 @@ const ProductListingPage = () => {
 
                 {/* Gender */}
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Gender</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('filter.gender')}</h4>
                   <div className="space-y-1">
                     {filterOptions.genders.map((gender) => (
                       <div key={gender} className="flex items-center">
@@ -220,7 +224,7 @@ const ProductListingPage = () => {
 
                 {/* Categories */}
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Categories</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('filter.categories')}</h4>
                   <div className="space-y-1">
                     {filterOptions.subCategories.map((subCat) => (
                       <div key={subCat} className="flex items-center">
@@ -246,7 +250,7 @@ const ProductListingPage = () => {
 
                 {/* Brands */}
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Brands</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('filter.brands')}</h4>
                   <div className="space-y-1">
                     {filterOptions.brands.map((brand) => (
                       <div key={brand} className="flex items-center">
@@ -268,16 +272,15 @@ const ProductListingPage = () => {
 
                 {/* Colors */}
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Colors</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('filter.colors')}</h4>
                   <div className="flex flex-wrap gap-2">
                     {filterOptions.colors.map((color) => (
                       <div
                         key={color}
-                        className={`w-6 h-6 rounded-full cursor-pointer border ${
-                          selectedFilters.colors.includes(color)
-                            ? "ring-2 ring-primary ring-offset-2"
-                            : ""
-                        }`}
+                        className={`w-6 h-6 rounded-full cursor-pointer border ${selectedFilters.colors.includes(color)
+                          ? "ring-2 ring-primary ring-offset-2"
+                          : ""
+                          }`}
                         style={{ backgroundColor: color }}
                         onClick={() => toggleFilter("colors", color)}
                         title={color}
@@ -288,7 +291,7 @@ const ProductListingPage = () => {
 
                 {/* Sizes */}
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Sizes</h4>
+                  <h4 className="font-medium text-sm mb-2">{t('filter.sizes')}</h4>
                   <div className="flex flex-wrap gap-1">
                     {filterOptions.sizes.map((size) => (
                       <Badge
@@ -317,27 +320,27 @@ const ProductListingPage = () => {
                 <SheetTrigger asChild>
                   <Button variant="outline" className="flex-1">
                     <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                    {t('listing.filters')} {activeFilterCount > 0 && `(${activeFilterCount})`}
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="sm:max-w-md overflow-auto">
                   <div className="space-y-6 py-4">
                     <div className="flex justify-between items-center">
-                      <h3 className="font-semibold">Filters</h3>
+                      <h3 className="font-semibold">{t('listing.filters')}</h3>
                       {activeFilterCount > 0 && (
                         <Button
                           variant="ghost"
                           className="text-xs h-8 px-2"
                           onClick={clearFilters}
                         >
-                          Clear All
+                          {t('listing.clearAll')}
                         </Button>
                       )}
                     </div>
 
                     {/* Price Range */}
                     <div>
-                      <h4 className="font-medium text-sm mb-3">Price Range</h4>
+                      <h4 className="font-medium text-sm mb-3">{t('filter.price')}</h4>
                       <Slider
                         defaultValue={[0, 200]}
                         max={200}
@@ -354,7 +357,7 @@ const ProductListingPage = () => {
 
                     {/* Gender */}
                     <div>
-                      <h4 className="font-medium text-sm mb-2">Gender</h4>
+                      <h4 className="font-medium text-sm mb-2">{t('filter.gender')}</h4>
                       <div className="space-y-1">
                         {filterOptions.genders.map((gender) => (
                           <div key={gender} className="flex items-center">
@@ -378,7 +381,7 @@ const ProductListingPage = () => {
 
                     {/* Categories */}
                     <div>
-                      <h4 className="font-medium text-sm mb-2">Categories</h4>
+                      <h4 className="font-medium text-sm mb-2">{t('filter.categories')}</h4>
                       <div className="space-y-1">
                         {filterOptions.subCategories.map((subCat) => (
                           <div key={subCat} className="flex items-center">
@@ -404,7 +407,7 @@ const ProductListingPage = () => {
 
                     {/* Brands */}
                     <div>
-                      <h4 className="font-medium text-sm mb-2">Brands</h4>
+                      <h4 className="font-medium text-sm mb-2">{t('filter.brands')}</h4>
                       <div className="space-y-1">
                         {filterOptions.brands.map((brand) => (
                           <div key={brand} className="flex items-center">
@@ -428,16 +431,15 @@ const ProductListingPage = () => {
 
                     {/* Colors */}
                     <div>
-                      <h4 className="font-medium text-sm mb-2">Colors</h4>
+                      <h4 className="font-medium text-sm mb-2">{t('filter.colors')}</h4>
                       <div className="flex flex-wrap gap-2">
                         {filterOptions.colors.map((color) => (
                           <div
                             key={color}
-                            className={`w-8 h-8 rounded-full cursor-pointer border ${
-                              selectedFilters.colors.includes(color)
-                                ? "ring-2 ring-primary ring-offset-2"
-                                : ""
-                            }`}
+                            className={`w-8 h-8 rounded-full cursor-pointer border ${selectedFilters.colors.includes(color)
+                              ? "ring-2 ring-primary ring-offset-2"
+                              : ""
+                              }`}
                             style={{ backgroundColor: color }}
                             onClick={() => toggleFilter("colors", color)}
                             title={color}
@@ -448,7 +450,7 @@ const ProductListingPage = () => {
 
                     {/* Sizes */}
                     <div>
-                      <h4 className="font-medium text-sm mb-2">Sizes</h4>
+                      <h4 className="font-medium text-sm mb-2">{t('filter.sizes')}</h4>
                       <div className="flex flex-wrap gap-1">
                         {filterOptions.sizes.map((size) => (
                           <Badge
@@ -471,7 +473,7 @@ const ProductListingPage = () => {
                       className="w-full mt-4"
                       onClick={() => setFiltersOpen(false)}
                     >
-                      Apply Filters
+                      {t('listing.apply')}
                     </Button>
                   </div>
                 </SheetContent>
@@ -480,7 +482,7 @@ const ProductListingPage = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
-                  placeholder="Search products..."
+                  placeholder={t('listing.searchPlaceholder')}
                   className="pl-9 w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -502,7 +504,7 @@ const ProductListingPage = () => {
             <div className="mt-2">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder={t('sort.placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {sortOptions.map((option) => (
@@ -521,7 +523,7 @@ const ProductListingPage = () => {
               <div className="relative w-80">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
-                  placeholder="Search products..."
+                  placeholder={t('listing.searchPlaceholder')}
                   className="pl-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -640,12 +642,12 @@ const ProductListingPage = () => {
                         />
                         {product.isNew && (
                           <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
-                            New
+                            {t('listing.new')}
                           </div>
                         )}
                         {product.isBestSeller && (
                           <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded-full">
-                            Best Seller
+                            {t('listing.bestSeller')}
                           </div>
                         )}
                       </div>
@@ -669,11 +671,11 @@ const ProductListingPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-xl mb-4">No products found</p>
+                  <p className="text-xl mb-4">{t('listing.noProducts')}</p>
                   <p className="text-gray-600 mb-6">
-                    Try adjusting your filters or search term
+                    {t('listing.tryAdjusting')}
                   </p>
-                  <Button onClick={clearFilters}>Clear All Filters</Button>
+                  <Button onClick={clearFilters}>{t('listing.clearAll')}</Button>
                 </div>
               )}
             </div>

@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { cn } from '@/lib/utils';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
   transparent?: boolean;
@@ -12,6 +14,7 @@ interface HeaderProps {
 
 export const Header = ({ transparent = false }: HeaderProps) => {
   const { totalItems } = useCart();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   return (
@@ -28,14 +31,15 @@ export const Header = ({ transparent = false }: HeaderProps) => {
 
         <div className="hidden md:flex items-center gap-6">
           <Link to="/categories" className="text-sm font-medium hover:text-primary transition-colors">
-            Shop
+            {t('nav.shop')}
           </Link>
           <Link to="/products/all" className="text-sm font-medium hover:text-primary transition-colors">
-            All Products
+            {t('nav.allProducts')}
           </Link>
         </div>
 
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <Button variant="ghost" size="icon" className="hidden md:flex">
             <Search size={18} />
           </Button>

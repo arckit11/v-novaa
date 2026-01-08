@@ -2,8 +2,10 @@
 import { useEffect, useState, useRef } from "react";
 import Vapi from "@vapi-ai/web";
 import { useVoiceCommandHandlers } from "./useVoiceCommandHandlers";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const VapiAssistant = () => {
+  const { t } = useLanguage();
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isSpeechActive, setIsSpeechActive] = useState(false);
   const [position, setPosition] = useState({ x: 24, y: typeof window !== 'undefined' ? window.innerHeight - 80 : 0 });
@@ -173,8 +175,8 @@ export const VapiAssistant = () => {
         className={`flex items-center justify-center rounded-full w-14 h-14 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg transition-all duration-300 ${isDragging ? "cursor-grabbing scale-105" : "cursor-grab"} ${isSessionActive ? "shadow-xl ring-2 ring-white/30" : "shadow-md"
           }`}
         onClick={toggleCall}
-        aria-label="Voice Assistant"
-        title={isSessionActive ? "End Voice Session" : "Start Voice Assistant"}
+        aria-label={t('intro.subtitle')}
+        title={isSessionActive ? t('voice.end') : t('voice.start')}
         style={{
           transform: "scale(1)",
         }}

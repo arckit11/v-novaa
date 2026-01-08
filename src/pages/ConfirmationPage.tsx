@@ -4,10 +4,13 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { BadgeCheck, ArrowRight, Home } from "lucide-react";
 import { useUserInfo } from "@/hooks/useUserInfo";
+import { useLanguage } from "@/context/LanguageContext";
+
 
 const ConfirmationPage = () => {
   const navigate = useNavigate();
   const { getUserInfo } = useUserInfo();
+  const { t } = useLanguage();
   const userInfo = getUserInfo();
   const orderNumber = "ORD" + Math.floor(100000 + Math.random() * 900000);
 
@@ -27,63 +30,62 @@ const ConfirmationPage = () => {
           </div>
 
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Your order is confirmed!
+            {t('confirm.title')}
           </h1>
 
           <p className="text-lg text-gray-600 mb-6">
-            Thank you for your purchase. We've received your order and will
-            begin processing it right away.
+            {t('confirm.subtitle')}
           </p>
 
           <div className="bg-background border rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">Order Information</h2>
+            <h2 className="text-xl font-bold mb-4">{t('confirm.orderInfo')}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mb-4">
               <div>
-                <p className="text-sm text-gray-500">Order Number</p>
+                <p className="text-sm text-gray-500">{t('confirm.orderNum')}</p>
                 <p className="font-medium">{orderNumber}</p>
               </div>
 
               <div>
-                <p className="text-sm text-gray-500">Date</p>
+                <p className="text-sm text-gray-500">{t('confirm.date')}</p>
                 <p className="font-medium">{new Date().toLocaleDateString()}</p>
               </div>
 
               <div>
-                <p className="text-sm text-gray-500">Email</p>
+                <p className="text-sm text-gray-500">{t('confirm.email')}</p>
                 <p className="font-medium">
-                  {userInfo.email || "Not provided"}
+                  {userInfo.email || t('confirm.notProvided')}
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-gray-500">Payment Method</p>
+                <p className="text-sm text-gray-500">{t('confirm.paymentMethod')}</p>
                 <p className="font-medium">
-                  {userInfo.cardNumber ? "Credit Card" : "Not specified"}
+                  {userInfo.cardNumber ? t('confirm.creditCard') : t('confirm.notSpecified')}
                 </p>
               </div>
             </div>
 
             <div className="text-left">
-              <p className="text-sm text-gray-500 mb-1">Shipping Address</p>
-              <p className="font-medium">{userInfo.name || "Not provided"}</p>
+              <p className="text-sm text-gray-500 mb-1">{t('confirm.shippingAddress')}</p>
+              <p className="font-medium">{userInfo.name || t('confirm.notProvided')}</p>
               <p className="text-gray-700">
-                {userInfo.address || "Address not provided"}
+                {userInfo.address || t('confirm.addressNotProvided')}
               </p>
               <p className="text-gray-700">
-                {userInfo.phone ? `Phone: ${userInfo.phone}` : ""}
+                {userInfo.phone ? `${t('payment.phone')}: ${userInfo.phone}` : ""}
               </p>
             </div>
 
             {userInfo.cardNumber && (
               <div className="text-left mt-4 border-t pt-4">
-                <p className="text-sm text-gray-500 mb-1">Payment Details</p>
+                <p className="text-sm text-gray-500 mb-1">{t('confirm.paymentDetails')}</p>
                 <p className="font-medium">
-                  Card ending in {userInfo.cardNumber.slice(-4)}
+                  {t('confirm.cardEnding')} {userInfo.cardNumber.slice(-4)}
                 </p>
                 {userInfo.cardName && (
                   <p className="text-gray-700">
-                    Name on card: {userInfo.cardName}
+                    {t('confirm.nameOnCard')}: {userInfo.cardName}
                   </p>
                 )}
               </div>
@@ -92,8 +94,7 @@ const ConfirmationPage = () => {
 
           <div className="space-y-4">
             <p className="text-gray-600">
-              You will receive a confirmation email with your order details and
-              tracking information once your order ships.
+              {t('confirm.emailNote')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
@@ -101,7 +102,7 @@ const ConfirmationPage = () => {
                 onClick={() => navigate("/products/all")}
                 className="flex gap-2 items-center"
               >
-                Continue Shopping
+                {t('cart.continue')}
                 <ArrowRight className="h-4 w-4" />
               </Button>
 
@@ -111,7 +112,7 @@ const ConfirmationPage = () => {
                 className="flex gap-2 items-center"
               >
                 <Home className="h-4 w-4" />
-                Back to Home
+                {t('confirm.backHome')}
               </Button>
             </div>
           </div>
