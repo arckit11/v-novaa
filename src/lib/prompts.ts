@@ -10,6 +10,29 @@ export const prompts = {
     Do not include any other text in your response.
   `,
 
+  languageSwitch: `
+    You are a language detection system for a voice assistant.
+    Analyze the voice command to determine the target language the user wants to switch to.
+    
+    Command: "{transcript}"
+    
+    Supported Languages:
+    - English ("en")
+    - Arabic ("ar")
+    
+    INSTRUCTIONS:
+    - Detect if the user wants to switch to English or Arabic.
+    - Examples for English: "Switch to English", "English please", "Change language to English", "Speak English", "حول للإنجليزية"
+    - Examples for Arabic: "Switch to Arabic", "Arabic please", "Change language to Arabic", "Speak Arabic", "حول للعربية", "تحدث بالعربية"
+    
+    Return a JSON object:
+    {
+      "language": "en" | "ar" | null
+    }
+    
+    If the user does not specify a supported language or isn't asking to switch language, return null.
+  `,
+
   categoryNavigation: `
     You are a high-precision category navigation detection system.
     Your task is to determine if the user wants to navigate to a product category.
@@ -417,6 +440,9 @@ export const prompts = {
     
     10. "clear_filters" - User wants to clear all filters
         Examples: "clear all filters", "reset filters", "remove all filters"
+
+    12. "switch_language" - User wants to change the application language
+        Examples: "Switch to Arabic", "Speak English", "Change language to Arabic", "تحدث بالعربية", "حول اللغة"
     
     11. "general_command" - Any other command that doesn't fit the above categories
         Examples: miscellaneous commands that don't fit other categories

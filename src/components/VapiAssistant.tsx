@@ -15,10 +15,17 @@ const VapiAssistantComponent = () => {
 
   const vapiRef = useRef<any>(null);
   const { processVoiceCommand } = useVoiceCommandHandlers();
+  const wasActiveBeforeLanguageChange = useRef(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const isInitialMountRef = useRef(true);
+  const isLanguageChangeInProgress = useRef(false);
 
   const getAssistantId = () => {
-    const id = import.meta.env.VITE_VAPI_ASSISTANT_ID_AR;
-    console.log("VapiAssistant: Using Arabic Assistant ID:", id);
+    // Select Assistant ID based on current language
+    const id = language === 'ar'
+      ? import.meta.env.VITE_VAPI_ASSISTANT_ID_AR
+      : import.meta.env.VITE_VAPI_ASSISTANT_ID;
     return id;
   };
 
@@ -33,16 +40,51 @@ const VapiAssistantComponent = () => {
   // Debugging Instance ID
   const instanceId = useRef(Math.random().toString(36).substring(7)).current;
 
+  // Re-initialize Vapi when language changes
   useEffect(() => {
-    // Initialize position on client-side mount
-    setPosition({ x: 24, y: window.innerHeight - 80 });
-    console.log(`[VapiAssistant ${instanceId}] MOUNTED - Path: ${window.location.pathname}`);
+    // Initialize position on client-side mount (only once)
+    if (!vapiRef.current) {
+      setPosition({ x: 24, y: window.innerHeight - 80 });
+    }
 
-    const API_KEY = import.meta.env.VITE_VAPI_API_KEY_AR;
+    // Clear any pending reconnection attempts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    // Track if call was active before language change
+    const wasActive = isSessionActive;
+    wasActiveBeforeLanguageChange.current = wasActive;
+
+    // Mark that we're in the middle of a language change to prevent unwanted reconnections
+    const isLanguageChange = !isInitialMountRef.current && vapiRef.current !== null;
+    isLanguageChangeInProgress.current = isLanguageChange;
+
+    console.log(`[VapiAssistant ${instanceId}] CONF UPDATE - Language: ${language} - Path: ${window.location.pathname} - WasActive: ${wasActive} - IsLanguageChange: ${isLanguageChange}`);
+
+    // Select API Key based on language
+    const API_KEY = language === 'ar'
+      ? import.meta.env.VITE_VAPI_API_KEY_AR
+      : import.meta.env.VITE_VAPI_API_KEY;
 
     if (!API_KEY) {
-      console.error("Missing Vapi API Key (VITE_VAPI_API_KEY_AR)");
+      console.error(`Missing Vapi API Key for language: ${language}`);
       return;
+    }
+
+    // Cleanup previous instance if it exists to strictly prevent duplicates
+    if (vapiRef.current) {
+      try {
+        // Only stop if call was active (preserve state if it wasn't)
+        if (wasActive) {
+          console.log(`[VapiAssistant ${instanceId}] Stopping previous call due to language change`);
+        }
+        vapiRef.current.stop();
+        vapiRef.current = null;
+      } catch (e) {
+        console.warn("Error stopping previous Vapi instance:", e);
+      }
     }
 
     const vapi = new Vapi(API_KEY);
@@ -51,12 +93,41 @@ const VapiAssistantComponent = () => {
     vapi.on("call-start", () => {
       console.log(`[VapiAssistant ${instanceId}] Call started`);
       setIsSessionActive(true);
+      setIsSpeechActive(false);
+      reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful start
     });
 
     vapi.on("call-end", () => {
       console.log(`[VapiAssistant ${instanceId}] Call ended`);
       setIsSessionActive(false);
       setIsSpeechActive(false);
+
+      // Don't attempt to reconnect if we're in the middle of a language change
+      // (the new instance will be started automatically)
+      if (isLanguageChangeInProgress.current) {
+        console.log(`[VapiAssistant ${instanceId}] Call ended due to language change, skipping reconnection`);
+        isLanguageChangeInProgress.current = false;
+        reconnectAttemptsRef.current = 0;
+        return;
+      }
+
+      // Attempt to reconnect if the call was active and ended unexpectedly
+      // Only reconnect if it wasn't manually stopped and we haven't exceeded max attempts
+      if (wasActiveBeforeLanguageChange.current && reconnectAttemptsRef.current < 3) {
+        console.log(`[VapiAssistant ${instanceId}] Attempting to reconnect (attempt ${reconnectAttemptsRef.current + 1}/3)...`);
+        reconnectAttemptsRef.current += 1;
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          const assistantId = getAssistantId();
+          if (assistantId && vapiRef.current) {
+            vapiRef.current.start(assistantId).catch((error: any) => {
+              console.error(`[VapiAssistant ${instanceId}] Reconnection failed:`, error);
+            });
+          }
+        }, 2000); // Wait 2 seconds before reconnecting
+      } else {
+        reconnectAttemptsRef.current = 0; // Reset if manually stopped or max attempts reached
+      }
     });
 
     vapi.on("speech-start", () => {
@@ -68,9 +139,47 @@ const VapiAssistantComponent = () => {
     });
 
     vapi.on("error", (error: any) => {
-      console.error(`[VapiAssistant ${instanceId}] Vapi Error:`, error);
+      console.error(`[VapiAssistant ${instanceId}] Vapi Error:`, JSON.stringify(error, null, 2));
+
+      const errorMsg = error?.error?.msg || error?.message || "Unknown error";
+
+      // Handle known startup errors
+      // expanded check to catch more variations of ejection or auth errors
+      if (
+        (error?.type === 'daily-error') ||
+        (errorMsg.includes('ejection')) ||
+        (errorMsg.includes('401'))
+      ) {
+        console.error("CRITICAL: Vapi connection rejected/failed. Checking credentials...");
+        reconnectAttemptsRef.current = 999; // Prevent reconnection attempts
+        setIsSessionActive(false);
+        setIsSpeechActive(false);
+
+        // If we are in the reconnection loop, kill it
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+        return;
+      }
+
       setIsSessionActive(false);
       setIsSpeechActive(false);
+
+      // Attempt to reconnect on non-auth errors
+      if (reconnectAttemptsRef.current < 3) {
+        console.log(`[VapiAssistant ${instanceId}] Attempting to reconnect after error (attempt ${reconnectAttemptsRef.current + 1}/3)...`);
+        reconnectAttemptsRef.current += 1;
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          const assistantId = getAssistantId();
+          if (assistantId && vapiRef.current) {
+            vapiRef.current.start(assistantId).catch((err: any) => {
+              console.error(`[VapiAssistant ${instanceId}] Reconnection after error failed:`, err);
+            });
+          }
+        }, 3000); // Wait 3 seconds before reconnecting after error
+      }
     });
 
     // Listen for transcripts instead of tool calls
@@ -86,21 +195,59 @@ const VapiAssistantComponent = () => {
       }
     });
 
-    // Auto-start the assistant
     const assistantId = getAssistantId();
     if (assistantId) {
-      console.log(`[VapiAssistant ${instanceId}] Auto-starting session...`);
-      vapi.start(assistantId).catch((error: any) => {
-        console.error(`[VapiAssistant ${instanceId}] Failed to auto-start Vapi:`, error);
-      });
+      // Auto-start on initial mount, or if call was active before language change
+      const shouldAutoStart = isInitialMountRef.current || wasActive;
+
+      if (shouldAutoStart) {
+        console.log(`[VapiAssistant ${instanceId}] Auto-starting session with ID: ${assistantId.slice(0, 8)}...`);
+        // Add a small delay to ensure cleanup of previous instance is fully processed by browser audio engine
+        // Use longer delay for language changes to ensure clean transition
+        const delay = isLanguageChange ? 300 : 100;
+        setTimeout(() => {
+          // Clear the language change flag before starting
+          isLanguageChangeInProgress.current = false;
+          vapi.start(assistantId).catch((error: any) => {
+            console.error(`[VapiAssistant ${instanceId}] Failed to auto-start Vapi:`, error);
+            setIsSessionActive(false);
+            // Reset reconnect attempts on initial start failure
+            if (isInitialMountRef.current) {
+              reconnectAttemptsRef.current = 0;
+            }
+          });
+        }, delay);
+      } else {
+        console.log(`[VapiAssistant ${instanceId}] Skipping auto-start (call was not active)`);
+        // Clear the language change flag if we're not auto-starting
+        isLanguageChangeInProgress.current = false;
+      }
+
+      // Mark initial mount as complete
+      if (isInitialMountRef.current) {
+        isInitialMountRef.current = false;
+      }
     }
 
-
     return () => {
-      console.log(`[VapiAssistant ${instanceId}] UNMOUNTED - Path: ${window.location.pathname}`);
-      vapi.stop();
+      console.log(`[VapiAssistant ${instanceId}] CLEANUP - Language: ${language}`);
+
+      // Clear reconnection timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
+      try {
+        if (vapiRef.current) {
+          vapiRef.current.stop();
+        }
+      } catch (e) {
+        // Ignore stop errors on unmount
+      }
+      vapiRef.current = null;
     };
-  }, []);
+  }, [language]); // Re-run when language changes
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent | TouchEvent) => {
@@ -175,11 +322,22 @@ const VapiAssistantComponent = () => {
     if (!vapi) return;
 
     if (isSessionActive) {
+      // Clear any pending reconnection attempts when manually stopping
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      reconnectAttemptsRef.current = 999; // Prevent auto-reconnection when manually stopped
+      wasActiveBeforeLanguageChange.current = false;
       vapi.stop();
     } else {
+      // Reset reconnect attempts when manually starting
+      reconnectAttemptsRef.current = 0;
+      wasActiveBeforeLanguageChange.current = true;
+
       const assistantId = getAssistantId();
       if (!assistantId) {
-        console.error("No Arabic Assistant ID found (VITE_VAPI_ASSISTANT_ID_AR)");
+        console.error("No Assistant ID found for current language");
         return;
       }
       // Start WITHOUT tool definitions, just plain Vapi for STT

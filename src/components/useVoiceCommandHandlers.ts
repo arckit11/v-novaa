@@ -9,6 +9,7 @@ import { filterOptions } from "@/data/products";
 import { useProduct } from "@/context/ProductContext";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useCart } from "@/context/CartContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 // Initializing Gemini
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
@@ -62,6 +63,7 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
     const { updateFilters, clearFilters, removeFilter } = useFilters();
     const { setSelectedSize, setQuantity, selectedSize, quantity } = useProduct();
     const { items, totalItems, subtotal, addItem } = useCart();
+    const { setLanguage } = useLanguage();
     // Removed useLocation and useParams to prevent VapiAssistant re-renders on navigation
     // const location = useLocation(); 
     // const params = useParams();
@@ -452,6 +454,31 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         }
     };
 
+    const handleLanguageSwitch = async (transcript: string) => {
+        try {
+            const prompt = prompts.languageSwitch.replace("{transcript}", transcript);
+            const responseText = await runGeminiText(prompt);
+            const cleaned = extractJson(responseText);
+            const parsed = JSON.parse(cleaned);
+
+            if (parsed.language) {
+                if (parsed.language === 'ar') {
+                    setLanguage('ar');
+                    logAction("Switched to Arabic");
+                    return true;
+                } else if (parsed.language === 'en') {
+                    setLanguage('en');
+                    logAction("Switched to English");
+                    return true;
+                }
+            }
+            return false;
+        } catch (error) {
+            console.error("Language switch error:", error);
+            return false;
+        }
+    };
+
     const handleOrderCompletion = async (transcript: string) => {
         try {
             // Manual check for speed and reliability, bypassing Gemini for obvious commands
@@ -496,6 +523,13 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
 
     const processVoiceCommand = async (transcript: string) => {
         console.log("%c[Voice Debug] Processing command:", "color: blue; font-weight: bold", transcript);
+
+        // Ignore very short transcripts (noise/false positives)
+        if (!transcript || transcript.length < 5) {
+            console.log("[Voice Debug] Transcript too short, ignoring.");
+            return;
+        }
+
         logAction(`Processing: "${transcript}"`);
 
         try {
@@ -540,6 +574,9 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
                 case "order_completion":
                     handled = await handleOrderCompletion(transcript);
                     break;
+                case "switch_language":
+                    handled = await handleLanguageSwitch(transcript);
+                    break;
                 default:
                     // Fallback try common ones
                     console.log("[Voice Debug] Intent fell through, trying fallback navigation/cart");
@@ -549,12 +586,7 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
             console.log(`%c[Voice Debug] Command handled: ${handled}`, handled ? "color: green" : "color: red");
 
             if (!handled) {
-                // Last ditch effort for direct matches
-                if (transcript.toLowerCase().includes("home")) { await navigate("/"); logAction("Navigated Home"); }
-                else if (transcript.toLowerCase().includes("cart")) { await navigate("/cart"); logAction("Opened Cart"); }
-                else {
-                    logAction("Command not recognized");
-                }
+                logAction("Command not recognized");
             }
 
         } catch (error) {
