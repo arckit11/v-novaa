@@ -1,5 +1,4 @@
-
-import React, { createContext, useState, useContext, ReactNode } from "react";
+import React, { createContext, useState, useContext, ReactNode, useRef, useCallback } from "react";
 
 export type CartItem = {
   id: string;
@@ -19,6 +18,8 @@ type CartContextType = {
   clearCart: () => void;
   totalItems: number;
   subtotal: number;
+  registerCheckoutHandler: (handler: () => void) => void;
+  triggerCheckout: () => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -38,6 +39,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return [];
   });
 
+  // Checkout handler registration for voice commands
+  const checkoutHandlerRef = useRef<(() => void) | null>(null);
+
+  const registerCheckoutHandler = useCallback((handler: () => void) => {
+    checkoutHandlerRef.current = handler;
+  }, []);
+
+  const triggerCheckout = useCallback(() => {
+    if (checkoutHandlerRef.current) {
+      checkoutHandlerRef.current();
+    } else {
+      console.warn("[CartContext] No checkout handler registered");
+    }
+  }, []);
+
   React.useEffect(() => {
     localStorage.setItem("cart_items", JSON.stringify(items));
   }, [items]);
@@ -51,7 +67,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       if (existingItemIndex > -1) {
         console.log("[CartContext] Updating existing item quantity");
-        // If item exists, increment quantity safely (create new object for the updated item)
         const updatedItems = [...prevItems];
         updatedItems[existingItemIndex] = {
           ...updatedItems[existingItemIndex],
@@ -60,7 +75,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return updatedItems;
       } else {
         console.log("[CartContext] Adding new item to list");
-        // If item doesn't exist, add it
         return [...prevItems, item];
       }
     });
@@ -97,6 +111,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     clearCart,
     totalItems,
     subtotal,
+    registerCheckoutHandler,
+    triggerCheckout,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

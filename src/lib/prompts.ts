@@ -4,33 +4,8 @@ export const prompts = {
     Analyze this voice command and determine if the user wants to clear all filters.
     Command: "{transcript}"
     
-    NOTE: The user may speak in Arabic or another language. Translate their intent accordingly.
-    
     Return ONLY "yes" if the user wants to clear/reset/remove filters, or "no" if not.
     Do not include any other text in your response.
-  `,
-
-  languageSwitch: `
-    You are a language detection system for a voice assistant.
-    Analyze the voice command to determine the target language the user wants to switch to.
-    
-    Command: "{transcript}"
-    
-    Supported Languages:
-    - English ("en")
-    - Arabic ("ar")
-    
-    INSTRUCTIONS:
-    - Detect if the user wants to switch to English or Arabic.
-    - Examples for English: "Switch to English", "English please", "Change language to English", "Speak English", "حول للإنجليزية"
-    - Examples for Arabic: "Switch to Arabic", "Arabic please", "Change language to Arabic", "Speak Arabic", "حول للعربية", "تحدث بالعربية"
-    
-    Return a JSON object:
-    {
-      "language": "en" | "ar" | null
-    }
-    
-    If the user does not specify a supported language or isn't asking to switch language, return null.
   `,
 
   categoryNavigation: `
@@ -45,7 +20,6 @@ export const prompts = {
     3. "running" (running shoes, joggers, track gear)
 
     INSTRUCTIONS:
-    - The user may speak in Arabic. Translate "رياضة" to gym, "يوغا" to yoga, "جري/ركض" to running.
     - If the user explicitly mentions "gym", "yoga", or "running" related terms, return that category.
     - If the user implies a category (e.g., "I want to lift weights" -> gym), return that category.
     - If the user asks for a category NOT listed (e.g., "swimming", "hiking"), return "none".
@@ -64,8 +38,6 @@ export const prompts = {
 
     Available functions:
     {availableFunctions}
-
-    NOTE: The user may speak in Arabic. Interpret the command in their language and map to the closest English function.
 
     Return ONLY the function name that best matches the user's intent, or "unknown" if no function matches.
     If the user says "show me my card" , or "take me to the card page" or "take me to the carpet page" , he is probably asking to show him his cart.......consider that.
@@ -94,12 +66,9 @@ export const prompts = {
     }
     
     INSTRUCTIONS:
-    - Input may be in Arabic. Translate numbers and sizes to English standards (e.g. "صغير" -> "S", "كبير" -> "L").
     - For size, return the exact size as listed in available sizes, or null if no size mentioned
     - For quantity, return the number mentioned, or null if no quantity mentioned
     - If the user wants to add to cart, set action to "addToCart"
-    - If the user mentions a specific product name to add (e.g. "add the yoga mat to cart"), extract it as "productName". If in Arabic, provide the Arabic name or English translation if obvious.
-    - Treat "أضف إلى السلة" ("Add to cart"), "aduf iila sallati", or similar Arabic phrases as "addToCart".
     - If no relevant action is detected, set action to "none"
     - Return ONLY the JSON object, no other text
   `,
@@ -120,58 +89,51 @@ export const prompts = {
     - "Show me what I've added"
     - "View items in my cart"
     - "Check my cart"
-    
-    NOTE: The user may speak in Arabic (e.g. "اعرض السلة"). Treat these as positive matches.
 
     Return ONLY "yes" if the user wants to view their cart, or "no" if not.
     Do not include any other text in your response.
   `,
 
   filterCommand: `
-    You are a high-precision filter detection system for an e-commerce voice assistant.
-    Your task is to extract explicit and implied filter preferences from voice commands ONLY if they match the available options.
+    You are a STRICT filter detection system for an e-commerce voice assistant.
+    Your task is to extract ONLY explicitly mentioned filter preferences from voice commands.
     
     Analyze this voice command: "{transcript}"
 
-    Available filters (Use ONLY these values):
+    Available filters (ONLY use these exact values):
     - Colors: {colors}
     - Sizes: {sizes}
     - Materials: {materials}
     - Genders: {genders}
     - Brands: {brands}
     - Categories (SubCategories): {categories}
-    - Price Range: Any range between 0-200 dollars
+    - Price Range: min-max between 0-200 dollars
 
-    CONTEXTUAL UNDERSTANDING INSTRUCTIONS:
-    0. MULTILINGUAL SUPPORT: The user may speak in Arabic. You MUST translate their intent to the corresponding ENGLISH filter value listed above. 
-       - e.g. "أحمر" -> "red"
-       - e.g. "رجال" -> "men"
-       - e.g. "سبرينت فورس" -> "SprintForce"
+    STRICT RULES - FOLLOW EXACTLY:
+    1. ONLY extract filters that are EXPLICITLY MENTIONED by name or direct synonym
+    2. DO NOT infer filters from context, pronouns, or metaphors
+    3. If user says "red", add red. If user says "for men", add men. If user says "Nike", add Nike.
+    4. DO NOT add filters based on:
+       - Pronouns (he/she/her/him) - IGNORE these
+       - Metaphors (like the sky, like grass) - IGNORE these
+       - Implied context (with my sister) - IGNORE these
+    5. For price, ONLY extract if user explicitly says a number or range (e.g., "under $50", "between 50 and 100")
+    6. When in doubt, DO NOT add the filter
 
-    1. Look for DIRECT mentions of filter preferences. Map ONLY to the available filter values listed above.
-    2. For gender filters, infer from contextual clues BUT ONLY map to 'men', 'women', or 'unisex' if found:
-       - "with my sister/girlfriend/mom/daughter/wife" → women
-       - "with my brother/boyfriend/dad/son/husband" → men
-       - "for her/she/woman" → women
-       - "for him/he/man" → men
-    3. For colors, detect preferences BUT ONLY map to the listed colors:
-       - "like the sky/ocean" → blue
-       - "like grass/trees" → green
-       - "like blood/apple" → red
-       - "like night/coal" → black
-       - "like snow/clouds" → white
-    4. Infer size needs BUT ONLY map to the listed sizes:
-       - "plus size/large/big" → XL, XXL
-       - "petite/small/slim" → XS, S
-       - "average/regular" → M
-    5. Detect price ranges from phrases:
-       - "affordable/cheap/budget" → [0, 50]
-       - "mid-range/moderate" → [50, 100]
-       - "premium/expensive/high-end" → [100, 200]
-    6. IMPORTANT: For Categories (SubCategories), ONLY apply a subcategory if it is explicitly mentioned or strongly implied by specific item types (e.g., 'mat' implies 'equipment', 'shoes' implies 'footwear'). DO NOT add 'equipment' by default or for general terms like 'gear' or 'items'.
+    VALID EXAMPLES (apply filter):
+    - "show me red items" → colors: ["red"]
+    - "I want men's clothing" → genders: ["men"]
+    - "Nike products please" → brands: ["nike"]
+    - "size medium" → sizes: ["m"]
+    - "under 50 dollars" → price: [0, 50]
 
-    Return a JSON object with ONLY the filters mentioned in the command AND that match the available options.
-    IMPORTANT: Use EXACTLY these keys in your response:
+    INVALID EXAMPLES (DO NOT apply filter):
+    - "show me something nice" → {} (no filter mentioned)
+    - "I'm shopping with my sister" → {} (no explicit gender filter)
+    - "something like the ocean" → {} (no explicit color)
+    - "show me products" → {} (no filter)
+
+    Return a JSON object with ONLY explicitly mentioned filters:
     {
       "colors": [],
       "sizes": [],
@@ -179,14 +141,13 @@ export const prompts = {
       "genders": [],
       "brands": [],
       "subCategories": [],
-      "price": [min, max]
+      "price": null
     }
     
-    Only include filters that were explicitly mentioned or strongly implied AND match the provided lists. Use empty arrays for filter types not mentioned or if no valid match was found.
-    For price, use the format [min, max] with values between 0-200.
-    If no specific valid filters were detected, return an empty object {}.
+    Use empty arrays for unmentioned filters. Use null for price if not specified.
+    If NO explicit filters detected, return: {}
     
-    CRITICAL: Return all values in lowercase for consistency. Ensure every value returned exists in the provided filter lists (colors, sizes, materials, etc.).
+    CRITICAL: Be conservative. Only extract what is CLEARLY and EXPLICITLY stated.
   `,
 
   productDetailNavigation: `
@@ -201,10 +162,9 @@ export const prompts = {
     INSTRUCTIONS:
     1.  Match the user's intent to one of the available products.
     2.  Prioritize exact name matches.
-    3.  If the input is in Arabic, translate it to English to match the product list (e.g. "بنطال يوغا" -> "Yoga Pants").
-    4.  If no exact match, look for semantic matches (e.g., "blue shoes" matches "Men's Blue Running Shoes").
-    5.  If the user asks to "tell me about", "describe", or "what is" a product, match that product.
-    6.  If the user is describing features unique to a product, match it.
+    3.  If no exact match, look for semantic matches (e.g., "blue shoes" matches "Men's Blue Running Shoes").
+    4.  If the user asks to "tell me about", "describe", or "what is" a product, match that product.
+    5.  If the user is describing features unique to a product, match it.
 
     Return a JSON object:
     {
@@ -225,8 +185,6 @@ export const prompts = {
     - Email address
     - Physical address
     - Phone number
-    
-    NOTE: Handle Arabic input.
     
     Return a JSON object with ONLY the fields that were mentioned:
     {
@@ -263,8 +221,6 @@ export const prompts = {
     - CVV (3-4 digit code)
     - Cardholder name
 
-    NOTE: Handle Arabic input.
-
     Return a JSON object with the extracted information, or an empty object if no information is being updated.
     Format:
     {
@@ -296,8 +252,6 @@ export const prompts = {
     - "Pay now"
     - "Complete order"
     - "Finalize purchase"
-    
-    NOTE: The user may speak in Arabic (e.g. "أكمل الطلب"). Treat these as positive matches.
 
     Return ONLY "yes" if the user wants to complete their purchase/place their order, or "no" if not.
     Do not include any other text in your response.
@@ -308,8 +262,6 @@ export const prompts = {
     Analyze this voice command and determine if the user wants to navigate back or to the home page.
     
     User command: "{transcript}"
-    
-    NOTE: The user may speak in Arabic (e.g. "رجوع" -> back, "الرئيسية" -> home).
 
     Return a JSON object with the following structure:
     {
@@ -354,7 +306,6 @@ export const prompts = {
     - Price Range: Any range between 0-200 dollars
     
     DETAILED DETECTION INSTRUCTIONS:
-    0. MULTILINGUAL: Support Arabic removal commands. Translate intent to English.
     1. Look for phrases explicitly indicating filter removal:
        - "remove/delete/take off/get rid of/eliminate/take away"
        - "I don't want to see/show ... anymore"
@@ -419,11 +370,11 @@ export const prompts = {
     3. "user_info" - User is providing or updating personal/payment information
        Examples: "my name is John", "my email is...", "my card number is...", "update my address"
     
-    4. "cart" - User wants to view or manage their shopping cart.....is you her show me my card or take me to the carpet page......even then its this function
+    4. "cart" - User wants to view or manage their shopping cart.....if you hear show me my card or take me to the carpet page......even then its this function
        Examples: "show me my cart", "view cart", "what's in my cart"
     
     5. "product_action" - User wants to interact with a current product (add to cart, change size/quantity)
-       Examples: "add to cart", "أضف إلى السلة", "select size medium", "change quantity to 2"
+       Examples: "add to cart", "select size medium", "change quantity to 2"
        NOTE: This ONLY applies when viewing a specific product detail page
     
     6. "product_navigation" - User wants to view a specific product's details OR asks for a description
@@ -440,9 +391,6 @@ export const prompts = {
     
     10. "clear_filters" - User wants to clear all filters
         Examples: "clear all filters", "reset filters", "remove all filters"
-
-    12. "switch_language" - User wants to change the application language
-        Examples: "Switch to Arabic", "Speak English", "Change language to Arabic", "تحدث بالعربية", "حول اللغة"
     
     11. "general_command" - Any other command that doesn't fit the above categories
         Examples: miscellaneous commands that don't fit other categories
@@ -470,8 +418,6 @@ export const prompts = {
     - "Add this to my cart" → "product_action" (if on product page)
     - "My credit card is 1234..." → "user_info" (providing payment info)
     - "Tell me about the black running shoes" → "product_navigation"
-    
-    NOTE: Input may be in Arabic. Classify the intent regardless of language.
 
     Return ONLY the intent category name as a string, nothing else. 
     Examples: "navigation", "apply_filter", "category_navigation", etc.

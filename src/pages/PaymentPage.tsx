@@ -20,7 +20,7 @@ import { toast } from "@/components/ui/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 
 const PaymentPage = () => {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, registerCheckoutHandler } = useCart();
   const navigate = useNavigate();
   const { getUserInfo, updateUserInfo } = useUserInfo();
   const { t } = useLanguage();
@@ -41,33 +41,30 @@ const PaymentPage = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Only listen for voice command updates - do NOT auto-fill from storage
   useEffect(() => {
-    const userInfo = getUserInfo();
-    setFormData((prev) => ({
-      ...prev,
-      name: userInfo.name || "",
-      email: userInfo.email || "",
-      address: userInfo.address || "",
-      phone: userInfo.phone || "",
-      cardName: userInfo.cardName || "",
-      cardNumber: userInfo.cardNumber || "",
-      expiryDate: userInfo.expiryDate || "",
-      cvv: userInfo.cvv || "",
-    }));
-
     const handleStorageChange = (event: Event) => {
       const updatedInfo = getUserInfo();
-      setFormData((prev) => ({
-        ...prev,
-        name: updatedInfo.name || "",
-        email: updatedInfo.email || "",
-        address: updatedInfo.address || "",
-        phone: updatedInfo.phone || "",
-        cardName: updatedInfo.cardName || "",
-        cardNumber: updatedInfo.cardNumber || "",
-        expiryDate: updatedInfo.expiryDate || "",
-        cvv: updatedInfo.cvv || "",
-      }));
+      console.log("[PaymentPage] Voice update received:", updatedInfo);
+
+      setFormData((prev) => {
+        const newData = {
+          ...prev,
+          name: updatedInfo.name || prev.name,
+          email: updatedInfo.email || prev.email,
+          address: updatedInfo.address || prev.address,
+          phone: updatedInfo.phone || prev.phone,
+          cardName: updatedInfo.cardName || prev.cardName,
+          cardNumber: updatedInfo.cardNumber || prev.cardNumber,
+          expiryDate: updatedInfo.expiryDate || prev.expiryDate,
+          cvv: updatedInfo.cvv || prev.cvv,
+        };
+        console.log("[PaymentPage] Form data updated to:", newData);
+        return newData;
+      });
+
+      // Clear any errors for updated fields
+      setErrors({});
 
       // Handle custom event with detail
       const customEvent = event as CustomEvent;
@@ -164,14 +161,11 @@ const PaymentPage = () => {
     if (e) e.preventDefault();
 
     if (!validateForm()) {
-      if (!validateForm()) {
-        toast({
-          title: t('payment.error.validate'),
-          description: t('payment.error.fill'),
-          variant: "destructive",
-        });
-        return;
-      }
+      toast({
+        title: t('payment.error.validate'),
+        description: t('payment.error.fill'),
+        variant: "destructive",
+      });
       return;
     }
 
@@ -184,18 +178,19 @@ const PaymentPage = () => {
     }, 2000);
   };
 
+  // Register checkout handler for voice commands
   useEffect(() => {
-    const handleVoiceOrderCompletion = () => {
-      console.log("Trigger-order-completion event received!"); // Debug log
+    registerCheckoutHandler(() => {
+      console.log("Checkout triggered via CartContext!");
       handlePayment();
-    };
-
-    window.addEventListener("trigger-order-completion", handleVoiceOrderCompletion);
+    });
 
     return () => {
-      window.removeEventListener("trigger-order-completion", handleVoiceOrderCompletion);
+      // Cleanup: unregister by passing empty function
+      registerCheckoutHandler(() => { });
     };
-  }, [formData, paymentMethod]); // Added dependencies to ensure validation works with current state
+  }, [formData, paymentMethod, registerCheckoutHandler]);
+
 
   return (
     <Layout>

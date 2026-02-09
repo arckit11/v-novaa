@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { cn } from '@/lib/utils';
-import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
   transparent?: boolean;
@@ -39,7 +38,6 @@ export const Header = ({ transparent = false }: HeaderProps) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <LanguageSwitcher />
           <Button variant="ghost" size="icon" className="hidden md:flex">
             <Search size={18} />
           </Button>

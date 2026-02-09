@@ -15,9 +15,6 @@ export type Product = {
   subCategory: string;
   isNew?: boolean;
   isBestSeller?: boolean;
-  nameAr?: string;
-  descriptionAr?: string;
-  brandAr?: string;
 };
 
 export const products: Product[] = [
@@ -37,11 +34,8 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 342,
     brand: "ZenFlow",
-    brandAr: "زين فلو",
     subCategory: "equipment",
     isBestSeller: true,
-    nameAr: "سجادة يوغا ممتازة",
-    descriptionAr: "تم تصميم **سجادة اليوغا الممتازة** من **زين فلو** لليوغيين الجادين الذين يبحثون عن أقصى درجات الراحة والدعم. تتميز ببطانة عالية الكثافة، وتحمي مفاصلك أثناء الوضعيات الصعبة مع توفير قبضة فائقة على الأسطح المختلفة، من الخشب الصلب إلى السجاد. متوفرة بألوان جذابة مثل **الأرجواني**، **الأزرق**، **الأسود**، و**الزبرجد**، هذه السجادة للجنسين مثالية للجميع. يشيد العملاء بمتانتها وصداقتها للبيئة، حيث يلاحظ الكثيرون: 'إنها أفضل سجادة استخدمتها على الإطلاق لممارستي اليومية!' مع تقييم ممتاز يبلغ 4.8، فلا عجب أنها الأكثر مبيعًا.",
 
   },
   {
@@ -60,11 +54,8 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 289,
     brand: "Luluma",
-    brandAr: "لولوما",
     subCategory: "bottoms",
     isNew: true,
-    nameAr: "بنطال يوغا فلو",
-    descriptionAr: "أطلق العنان لإمكانياتك الكاملة مع **بنطال يوغا فلو** من **لولوما**. صُمم هذا البنطال بنسيج مطاطي رباعي الاتجاهات، ويضمن أقصى قدر من الحركة، مما يسمح لك بالانتقال بسلاسة بين الوضعيات المعقدة. متوفر بألوان أنيقة مثل **الأسود**، **الكحلي**، **الكستنائي**، و**الزيتوني**، يناسب هذا البنطال جميع أشكال الجسم، بأحجام تتراوح من **XS** إلى **XL**. يسلط المستخدمون الضوء على راحته، قائلين: 'هذا البنطال يتحرك معي ولا يرتفع، مما يجعل تماريني أفضل بكثير!' مع تصنيف 4.7 نجوم، فهو ضروري لأي متحمس لليوجا.",
 
   },
   {
@@ -82,10 +73,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 210,
     brand: "Luluma",
-    brandAr: "لولوما",
     subCategory: "tops",
-    nameAr: "بلوزة يوغا بريز",
-    descriptionAr: "تمتع بالراحة والأناقة مع **بلوزة يوغا بريز** من **لولوما**. تتميز هذه البلوزة خفيفة الوزن والمسامية بقصة مريحة، مما يضمن حركة غير مقيدة حتى أثناء الجلسات الأكثر كثافة. متوفرة بألوان هادئة مثل **الأبيض**، **الأزرق الفاتح**، **الوردي الخافت**، و**المريمرية**، وهي مثالية للارتداء فوق الملابس الأخرى أو بمفردها. يشيد المستخدمون بنسيجها الناعم وقصتها الجذابة، حيث يقولون غالبًا: 'لا أصدق مدى مسامية هذه البلوزة؛ إنها تبقيني باردة وواثقة طوال تماريني.' مع تقييم جدير بالثناء يبلغ 4.5 نجوم، فهي خيار ممتاز لعشاق اليوجا.",
 
   },
   {
@@ -104,11 +92,8 @@ export const products: Product[] = [
     rating: 4.9,
     reviews: 520,
     brand: "SprintForce",
-    brandAr: "سبرينت فورس",
     subCategory: "footwear",
     isBestSeller: true,
-    nameAr: "حذاء الجري كلاود",
-    descriptionAr: "جرب راحة لا مثيل لها مع **حذاء الجري كلاود** من **سبرينت فورس**. تم تصميم هذه الأحذية ببطانة ودعم سريعي الاستجابة، وهي مصممة للعدائين لمسافات طويلة الذين يطلبون الأداء والمتانة. متوفرة بمجموعات مذهلة مثل **الأسود/الأبيض**، **الرمادي/الأزرق**، **الأسود بالكامل**، و**الكحلي/البرتقالي**، وتتناسب تمامًا مع أي نمط. يهذي العدائون براحتها، مدعين: 'هذه هي الأحذية الأكثر دعمًا التي ارتديتها على الإطلاق. يمكنني الركض لأميال دون إزعاج!' مع تصنيف استثنائي يبلغ 4.9 نجوم وأكثر من 520 مراجعة، فهي الخيار الأول للرياضيين.",
 
   },
   {
@@ -127,10 +112,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 190,
     brand: "SprintForce",
-    brandAr: "سبرينت فورس",
     subCategory: "bottoms",
-    nameAr: "شورت الجري سويفت",
-    descriptionAr: "اركض بثقة مع **شورت الجري سويفت** من **سبرينت فورس**. يأتي هذا الشورت خفيف الوزن وسريع الجفاف مع بطانة مدمجة، مما يضمن الراحة والسهولة أثناء أي تمرين. صُمم مع التركيز على التطبيق العملي، وهو متوفر بألوان كلاسيكية مثل **الأسود**، **الرمادي**، **الكحلي**، و**الزيتوني**، ليلبي الأسلوب والوظيفة. يقدر المستخدمون كيف يبقى باردًا ومناسبًا تمامًا، وغالبًا ما يقولون: 'هذا الشورت مريح بشكل لا يصدق؛ أنسى أنني أرتديه!' مع تصنيف قوي يبلغ 4.6 نجوم، فهو مفضل لدى العدائين.",
 
   },
   {
@@ -149,11 +131,8 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 156,
     brand: "SprintForce",
-    brandAr: "سبرينت فورس",
     subCategory: "outerwear",
     isNew: true,
-    nameAr: "جاكيت الجري بريز",
-    descriptionAr: "**جاكيت الجري بريز** من **سبرينت فورس** هو الرفيق المثالي للطقس غير المتوقع. صُنع هذا الجاكيت من مواد خفيفة الوزن ومقاومة للماء، ويوفر الراحة والحماية من المطر والرياح، مما يجعله مثاليًا للجري في الهواء الطلق والتمارين الرياضية. بفضل تصميمه الأنيق المتوفر بألوان خالدة مثل **الأسود**، **الزبرجد**، **الوردي**، **الفضي**، و**الرمادي**، فهو أنيق بقدر ما هو عملي. يهذي المستخدمون بمساميته وملاءمته، وغالبًا ما يصرحون: 'هذا الجاكيت يبقيني جافًا دون ارتفاع درجة الحرارة؛ إنه تغيير جذري لجريي الصباحي.' مع تصنيف 4.7 نجوم، فهو ضروري للعدائين الجادين.",
 
   },
   {
@@ -172,10 +151,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 230,
     brand: "SprintForce",
-    brandAr: "سبرينت فورس",
     subCategory: "bottoms",
-    nameAr: "سروال الجري الحراري",
-    descriptionAr: "سروال ضيق دافئ ومطارد للرطوبة للجري في الطقس البارد مع تفاصيل عاكسة.",
 
   },
   {
@@ -194,10 +170,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 178,
     brand: "PowerLift",
-    brandAr: "باور ليفت",
     subCategory: "tops",
-    nameAr: "تي شيرت جيم باور",
-    descriptionAr: "تي شيرت طارد للرطوبة بتصميم ظهر متسابق لأقصى قدر من الحركة أثناء التمارين.",
 
   },
   {
@@ -216,11 +189,8 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 245,
     brand: "PowerLift",
-    brandAr: "باور ليفت",
     subCategory: "bottoms",
     isBestSeller: true,
-    nameAr: "شورت التدريب فليكس",
-    descriptionAr: "شورت مطاطي ومتين مع إدارة للرطوبة لجلسات الجيم المكثفة.",
 
   },
   {
@@ -239,10 +209,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 310,
     brand: "PowerLift",
-    brandAr: "باور ليفت",
     subCategory: "outerwear",
-    nameAr: "هودي جيم إليمنت",
-    descriptionAr: "هودي ناعم ومسامي بنسيج عالي الأداء لراحة ما قبل وما بعد التمرين.",
 
   },
   {
@@ -261,11 +228,8 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 185,
     brand: "PowerLift",
-    brandAr: "باور ليفت",
     subCategory: "accessories",
     isNew: true,
-    nameAr: "قفازات جيم جريب برو",
-    descriptionAr: "مقابض كف مانعة للانزلاق مع دعم للمعصم لرفع الأثقال والتدريب.",
 
   },
   {
@@ -284,10 +248,7 @@ export const products: Product[] = [
     rating: 4.9,
     reviews: 120,
     brand: "ZenFlow",
-    brandAr: "زين فلو",
     subCategory: "equipment",
-    nameAr: "مكعب يوغا من الفلين",
-    descriptionAr: "مكعب يوغا من الفلين المستدام يوفر دعماً ثابتاً لوضعيات اليوغا المختلفة.",
 
   },
   {
@@ -304,10 +265,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 210,
     brand: "YogaCo",
-    brandAr: "يوغا كو",
     subCategory: "bottoms",
-    nameAr: "بنطال يوغا مريح",
-    descriptionAr: "بنطال بلمسة ناعمة مصمم للراحة والمرونة.",
 
   },
   {
@@ -324,10 +282,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 145,
     brand: "Breathe",
-    brandAr: "بريث",
     subCategory: "tops",
-    nameAr: "حمالة صدر يوغا داعمة",
-    descriptionAr: "حمالة صدر بدعم متوسط لجميع أنماط اليوغا النشطة.",
 
   },
   {
@@ -344,10 +299,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 190,
     brand: "FlowWear",
-    brandAr: "فلو وير",
     subCategory: "tops",
-    nameAr: "تي شيرت يوغا إسكيب",
-    descriptionAr: "تي شيرت فضفاض لراحة قصوى أثناء جلسات اليوغا.",
 
   },
 
@@ -366,10 +318,7 @@ export const products: Product[] = [
     rating: 4.4,
     reviews: 120,
     brand: "RunFast",
-    brandAr: "رن فاست",
     subCategory: "tops",
-    nameAr: "تي شيرت جري خفيف الوزن",
-    descriptionAr: "تي شيرت مسامي مصمم للجري في الطقس الدافئ.",
 
   },
   {
@@ -386,10 +335,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 156,
     brand: "JoggingQueen",
-    brandAr: "جوجينج كوين",
     subCategory: "bottoms",
-    nameAr: "بنطال كابري خفيف للجري",
-    descriptionAr: "بنطال كابري مثالي لجري مريح.",
 
   },
   {
@@ -408,10 +354,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 210,
     brand: "TrailBlazer",
-    brandAr: "تريل بليزر",
     subCategory: "outerwear",
-    nameAr: "جاكيت جري فليكس",
-    descriptionAr: "جاكيت مرن مصمم للحركة والراحة أثناء الجري.",
 
   },
 
@@ -430,10 +373,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 210,
     brand: "LiftStrong",
-    brandAr: "ليفت سترونج",
     subCategory: "tops",
-    nameAr: "تي شيرت تدريب جيم",
-    descriptionAr: "تي شيرت خفيف الوزن للتمارين عالية الكثافة.",
 
   },
   {
@@ -451,10 +391,7 @@ export const products: Product[] = [
     rating: 4.9,
     reviews: 300,
     brand: "EliteGym",
-    brandAr: "إيليت جيم",
     subCategory: "bottoms",
-    nameAr: "بنطال جيم إيليت",
-    descriptionAr: "بنطال قماش ضاغط لأداء مثالي.",
 
   },
   {
@@ -472,10 +409,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 220,
     brand: "FitnessWear",
-    brandAr: "فيتنس وير",
     subCategory: "outerwear",
-    nameAr: "هودي ستريتش",
-    descriptionAr: "هودي مناسب للدفء والراحة أثناء التمارين.",
 
   },
 
@@ -495,10 +429,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 180,
     brand: "ZenFlow",
-    brandAr: "زين فلو",
     subCategory: "bottoms",
-    nameAr: "بنطال كابري يوغا فلو",
-    descriptionAr: "بنطال كابري مسامية لراحة قصوى أثناء اليوغا.",
 
   },
   {
@@ -516,10 +447,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 145,
     brand: "BreatheEasy",
-    brandAr: "بريث إيزي",
     subCategory: "outerwear",
-    nameAr: "لفافة يوغا خفيفة",
-    descriptionAr: "لفافة خفيفة لتغطية إضافية وأناقة.",
 
   },
 
@@ -540,10 +468,7 @@ export const products: Product[] = [
     rating: 4.4,
     reviews: 175,
     brand: "JoggerPro",
-    brandAr: "جوجر برو",
     subCategory: "outerwear",
-    nameAr: "جاكيت جري خفيف الوزن",
-    descriptionAr: "جاكيت خفيف الوزن مصمم للجري مع مقاومة للرياح.",
 
   },
   {
@@ -561,10 +486,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 130,
     brand: "SwiftRun",
-    brandAr: "سويفت رن",
     subCategory: "bottoms",
-    nameAr: "شورت جري إيليت",
-    descriptionAr: "شورت متخصص للأداء العالي أثناء الجري.",
 
   },
 
@@ -584,10 +506,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 210,
     brand: "LiftMax",
-    brandAr: "ليفت ماكس",
     subCategory: "tops",
-    nameAr: "سترة جيم سريعة الجفاف",
-    descriptionAr: "سترة سريعة الجفاف مثالية للتمارين المكثفة.",
 
   },
   {
@@ -605,10 +524,7 @@ export const products: Product[] = [
     rating: 4.9,
     reviews: 200,
     brand: "CasualFit",
-    brandAr: "كاجوال فيت",
     subCategory: "bottoms",
-    nameAr: "بنطال رياضي مريح",
-    descriptionAr: "بنطال رياضي ناعم ودافئ مثالي للأيام الباردة.",
 
   },
   // Existing products...
@@ -629,10 +545,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 130,
     brand: "ZenFlow",
-    brandAr: "زين فلو",
     subCategory: "bottoms",
-    nameAr: "بنطال يوغا فلو",
-    descriptionAr: "بنطال ناعم ومطاطي يسمح بحرية كاملة في الحركة.",
 
   },
   {
@@ -651,10 +564,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 120,
     brand: "CalmSpirit",
-    brandAr: "كالم سبيريت",
     subCategory: "tops",
-    nameAr: "حمالة صدر يوغا طويلة",
-    descriptionAr: "حمالة صدر أنيقة توفر دعماً ممتداً لممارسات اليوغا المختلفة.",
 
   },
   {
@@ -671,10 +581,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 145,
     brand: "FlowWear",
-    brandAr: "فلو وير",
     subCategory: "outerwear",
-    nameAr: "جاكيت يوغا خفيف الوزن",
-    descriptionAr: "جاكيت مسامي وأنيق للإحماء أثناء اليوغا.",
 
   },
   {
@@ -693,10 +600,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 150,
     brand: "GreenFit",
-    brandAr: "جرين فيت",
     subCategory: "tops",
-    nameAr: "تي شيرت يوغا صديق للبيئة",
-    descriptionAr: "تي شيرت مستدام مصنوع من مواد معاد تدويرها لعشاق اليوغا.",
 
   },
   {
@@ -715,10 +619,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 90,
     brand: "YogaSpirit",
-    brandAr: "يوغا سبيريت",
     subCategory: "bottoms",
-    nameAr: "تنورة يوغا طويلة",
-    descriptionAr: "تنورة طويلة انسيابية تسمح بالحركة مع الحفاظ على الأناقة.",
 
   },
   {
@@ -737,10 +638,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 140,
     brand: "ComfortWear",
-    brandAr: "كومفورت وير",
     subCategory: "outerwear",
-    nameAr: "سويت شيرت يوغا",
-    descriptionAr: "سويت شيرت مريح مصمم للراحة والتدفئة قبل وبعد اليوغا.",
 
   },
   {
@@ -758,10 +656,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 210,
     brand: "CalmWear",
-    brandAr: "كالم وير",
     subCategory: "tops",
-    nameAr: "حمالة صدر يوغا التيميت",
-    descriptionAr: "أساسية لليوغا، توفر دعماً خفيفاً مع راحة.",
 
   },
 
@@ -781,10 +676,7 @@ export const products: Product[] = [
     rating: 4.4,
     reviews: 180,
     brand: "Sporty",
-    brandAr: "سبورتي",
     subCategory: "tops",
-    nameAr: "تي شيرت جري متطور",
-    descriptionAr: "تي شيرت بتقنية طاردة للرطوبة مصمم لراحة قصوى.",
 
   },
   {
@@ -802,10 +694,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 175,
     brand: "RunWear",
-    brandAr: "رن وير",
     subCategory: "outerwear",
-    nameAr: "سويت شيرت جري",
-    descriptionAr: "سويت شيرت دافئ مثالي للإحماء قبل الجري.",
 
   },
   {
@@ -822,10 +711,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 250,
     brand: "RunMax",
-    brandAr: "رن ماكس",
     subCategory: "bottoms",
-    nameAr: "شورت جري 3 في 1",
-    descriptionAr: "شورت جري متعدد الاستخدامات مع سروال داخلي للراحة.",
 
   },
   {
@@ -844,10 +730,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 160,
     brand: "WeatherRun",
-    brandAr: "ويذر رن",
     subCategory: "outerwear",
-    nameAr: "جاكيت جري علوي",
-    descriptionAr: "جاكيت خفيف الوزن مثالي للجري مع ميزات مقاومة للماء.",
 
   },
   {
@@ -865,10 +748,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 140,
     brand: "ActiveMotion",
-    brandAr: "أكتيف موشن",
     subCategory: "bottoms",
-    nameAr: "بنطال ضيق للجري وركوب الدراجات",
-    descriptionAr: "بنطال ضيق متعدد الأغراض مناسب للجري وركوب الدراجات.",
 
   },
   {
@@ -885,10 +765,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 125,
     brand: "TravelRunners",
-    brandAr: "ترافل رنرز",
     subCategory: "outerwear",
-    nameAr: "جاكيت جري للسفر",
-    descriptionAr: "جاكيت قابل للطي للعدائين؛ محمول وحامي.",
 
   },
 
@@ -908,10 +785,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 220,
     brand: "FitFlex",
-    brandAr: "فيت فليكس",
     subCategory: "tops",
-    nameAr: "تي شيرت جيم فيت",
-    descriptionAr: "تي شيرت متعدد الاستخدامات مثالي للتمارين والملابس غير الرسمية.",
 
 
   },
@@ -930,10 +804,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 115,
     brand: "GymWear",
-    brandAr: "جيم وير",
     subCategory: "bottoms",
-    nameAr: "بنطال كارجو جيم",
-    descriptionAr: "بنطال كارجو عملي بجيوب لجميع أساسيات الجيم.",
 
   },
   {
@@ -952,10 +823,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 200,
     brand: "WarmUp",
-    brandAr: "وورم أب",
     subCategory: "outerwear",
-    nameAr: "جاكيت إحماء جيم",
-    descriptionAr: "مثالي للإحماء؛ جاكيت أنيق للتمارين والنزهات غير الرسمية.",
 
   },
   {
@@ -972,10 +840,7 @@ export const products: Product[] = [
     rating: 4.4,
     reviews: 160,
     brand: "ActiveZone",
-    brandAr: "أكتيف زون",
     subCategory: "bottoms",
-    nameAr: "شورت جيم ضيق",
-    descriptionAr: "شورت ضيق ذو تهوية مصمم لأقصى قدر من الحركة.",
 
   },
   {
@@ -992,10 +857,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 195,
     brand: "ComfortWear",
-    brandAr: "كومفورت وير",
     subCategory: "tops",
-    nameAr: "توب جيم مريح",
-    descriptionAr: "توب ناعم ومريح لجلسات التمرين المكثفة.",
 
   },
   {
@@ -1013,10 +875,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 180,
     brand: "ZenFlex",
-    brandAr: "زين فليكس",
     subCategory: "bottoms",
-    nameAr: "بنطال يوغا فيت",
-    descriptionAr: "بنطال خفيف الوزن مصمم لليوجا والتمدد.",
 
   },
   {
@@ -1035,10 +894,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 175,
     brand: "ThermoFit",
-    brandAr: "ثيرمو فيت",
     subCategory: "bottoms",
-    nameAr: "بنطال حراري تيك",
-    descriptionAr: "بنطال حراري مصمم للتمارين الباردة مع إدارة الرطوبة.",
 
   },
   {
@@ -1056,10 +912,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 210,
     brand: "FitBra",
-    brandAr: "فيت برا",
     subCategory: "tops",
-    nameAr: "حمالة صدر رياضية",
-    descriptionAr: "حمالة صدر رياضية مريحة وداعمة لتمارين الجيم.",
 
   },
   {
@@ -1077,10 +930,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 202,
     brand: "GraphicFit",
-    brandAr: "جرافيك فيت",
     subCategory: "tops",
-    nameAr: "توب تمرين بطبعة",
-    descriptionAr: "توب بدون أكمام بطبعة جرافيك يجمع بين الموضة والوظيفة.",
 
   },
   // Existing products...
@@ -1102,10 +952,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 110,
     brand: "YogaSoul",
-    brandAr: "يوغا سول",
     subCategory: "tops",
-    nameAr: "توب يوغا قصير خفيف",
-    descriptionAr: "توب قصير مريح يتميز بنسيج خفيف الوزن لجلسات اليوغا.",
 
   },
   {
@@ -1123,10 +970,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 95,
     brand: "Zen Spirit",
-    brandAr: "زين سبيريت",
     subCategory: "tops",
-    nameAr: "توب يوغا بأكمام طويلة",
-    descriptionAr: "توب ناعم بأكمام طويلة مثالي للارتداء فوق الملابس أثناء التمارين.",
 
   },
 
@@ -1147,10 +991,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 160,
     brand: "RunVibe",
-    brandAr: "رن فايب",
     subCategory: "bottoms",
-    nameAr: "بنطال جري بخصر مرتفع",
-    descriptionAr: "بنطال أنيق بخصر مرتفع مع جيوب، مثالي للجري.",
 
   },
   {
@@ -1168,10 +1009,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 120,
     brand: "RunPro",
-    brandAr: "رن برو",
     subCategory: "outerwear",
-    nameAr: "جاكيت جري مسامي",
-    descriptionAr: "جاكيت عالي التهوية لجلسات الإحماء أو التهدئة.",
 
   },
   {
@@ -1189,10 +1027,7 @@ export const products: Product[] = [
     rating: 4.4,
     reviews: 150,
     brand: "SprintRun",
-    brandAr: "سبرينت رن",
     subCategory: "bottoms",
-    nameAr: "شورت جري مريح",
-    descriptionAr: "شورت جري للرجال مصمم للراحة والأناقة.",
 
   },
   {
@@ -1211,10 +1046,7 @@ export const products: Product[] = [
     rating: 4.9,
     reviews: 180,
     brand: "OutdoorGear",
-    brandAr: "أوت دور جير",
     subCategory: "bottoms",
-    nameAr: "بنطال جري للطقس البارد",
-    descriptionAr: "بنطال معزول مصمم للجري في الطقس البارد مع حماية حرارية.",
 
   },
 
@@ -1234,10 +1066,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 150,
     brand: "FlexFit",
-    brandAr: "فليكس فيت",
     subCategory: "bottoms",
-    nameAr: "شورت جيم مخطط",
-    descriptionAr: "شورت جيم أنيق مع قصة مريحة للارتداء طوال اليوم.",
 
   },
   {
@@ -1255,10 +1084,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 210,
     brand: "PerformX",
-    brandAr: "بيرفورم اكس",
     subCategory: "outerwear",
-    nameAr: "هودي جيم بسحاب",
-    descriptionAr: "هودي بسحاب للإحماء والتهدئة في صالة الألعاب الرياضية.",
 
   },
   {
@@ -1276,10 +1102,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 165,
     brand: "StrengthWear",
-    brandAr: "سترينث وير",
     subCategory: "tops",
-    nameAr: "توب تمرين بدون أكمام",
-    descriptionAr: "توب بدون أكمام مسامي مثالي للتمارين المكثفة.",
 
   },
 
@@ -1299,10 +1122,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 200,
     brand: "YogaBliss",
-    brandAr: "يوغا بليس",
     subCategory: "bottoms",
-    nameAr: "بنطال يوغا فلو",
-    descriptionAr: "بنطال يوغا واسع الساق يسمح بحرية الحركة.",
 
   },
 
@@ -1321,10 +1141,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 190,
     brand: "ActiveFit",
-    brandAr: "أكتيف فيت",
     subCategory: "tops",
-    nameAr: "تي شيرت جيم بأكمام طويلة",
-    descriptionAr: "تي شيرت خفيف الوزن ومسامي بأكمام طويلة للتمارين.",
 
   },
 
@@ -1344,10 +1161,7 @@ export const products: Product[] = [
     rating: 4.7,
     reviews: 175,
     brand: "ZenLife",
-    brandAr: "زين لايف",
     subCategory: "outerwear",
-    nameAr: "هودي يوغا من قماش تيري فرنسي",
-    descriptionAr: "هودي ناعم مصنوع من قماش تيري فرنسي للراحة والدفء.",
 
   },
 
@@ -1366,10 +1180,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 160,
     brand: "SmoothRun",
-    brandAr: "سموث رن",
     subCategory: "bottoms",
-    nameAr: "شورت جري مضاد للاحتكاك",
-    descriptionAr: "شورت بقماش خاص مصمم لمنع الاحتكاك أثناء الجري.",
 
   },
 
@@ -1389,10 +1200,7 @@ export const products: Product[] = [
     rating: 4.6,
     reviews: 140,
     brand: "FlowFlex",
-    brandAr: "فلو فليكس",
     subCategory: "tops",
-    nameAr: "حمالة صدر يوغا مريحة",
-    descriptionAr: "مرنة وداعمة، مثالية لجلسات اليوغا الساخنة.",
 
   },
 
@@ -1410,10 +1218,7 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: 200,
     brand: "WearComfort",
-    brandAr: "وير كومفورت",
     subCategory: "outerwear",
-    nameAr: "جاكيت جيم كاجوال",
-    descriptionAr: "جاكيت كاجوال وأنيق مناسب للجيم والاسترخاء.",
 
   },
 
@@ -1432,10 +1237,7 @@ export const products: Product[] = [
     rating: 4.5,
     reviews: 160,
     brand: "RunnerGear",
-    brandAr: "رونر جير",
     subCategory: "bottoms",
-    nameAr: "شورت جري طويل",
-    descriptionAr: "شورت جري مصمم لأقصى قدر من التغطية والراحة.",
 
   },
 ];

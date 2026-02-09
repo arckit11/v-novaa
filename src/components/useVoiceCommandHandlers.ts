@@ -1,15 +1,14 @@
-
-import { useState, useRef } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { products } from "@/data/products";
 import { prompts } from "@/lib/prompts";
-import { useFilters, FilterState } from "@/context/FilterContext";
-import { filterOptions } from "@/data/products";
-import { useProduct } from "@/context/ProductContext";
+import { useFilters } from "@/context/FilterContext";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useCart } from "@/context/CartContext";
-import { useLanguage } from "@/context/LanguageContext";
+import { useNavigationHandler } from "@/hooks/voice-intents/useNavigationHandler";
+import { useProductHandler } from "@/hooks/voice-intents/useProductHandler";
+import { useFilterHandler } from "@/hooks/voice-intents/useFilterHandler";
+import { useCheckoutFlow } from "@/hooks/useCheckoutFlow";
 
 // Initializing Gemini
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
@@ -18,7 +17,8 @@ if (!geminiApiKey) {
 }
 const genAI = new GoogleGenerativeAI(geminiApiKey ?? "");
 
-const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash"];
+// Optimized for speed - use flash model only
+const GEMINI_MODELS = ["gemini-2.5-flash"];
 
 const callGeminiWithFallback = async <T,>(
     action: (model: ReturnType<typeof genAI.getGenerativeModel>) => Promise<T>
@@ -47,10 +47,8 @@ const runGeminiText = async (prompt: string): Promise<string> => {
 };
 
 const extractJson = (text: string): string => {
-    // Try to find JSON object or array
     const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (jsonMatch) return jsonMatch[0];
-    // Fallback to simple cleanup if no clear JSON structure found (though match is usually best)
     return text.replace(/```json|```/g, "").trim();
 };
 
@@ -60,13 +58,8 @@ interface UseVoiceCommandHandlersProps {
 
 export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHandlersProps = {}) => {
     const { updateUserInfo, getUserInfo } = useUserInfo();
-    const { updateFilters, clearFilters, removeFilter } = useFilters();
-    const { setSelectedSize, setQuantity, selectedSize, quantity } = useProduct();
-    const { items, totalItems, subtotal, addItem } = useCart();
-    const { setLanguage } = useLanguage();
-    // Removed useLocation and useParams to prevent VapiAssistant re-renders on navigation
-    // const location = useLocation(); 
-    // const params = useParams();
+    const { clearFilters } = useFilters();
+    const { triggerCheckout } = useCart();
     const navigate = useNavigate();
 
     const [lastAction, setLastAction] = useState<string>("");
@@ -83,27 +76,26 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         setLastAction(action);
     };
 
-    const getCurrentPageState = () => {
-        const currentPath = window.location.pathname;
-        // Manual params parsing for /product/:id
-        let currentProductId = null;
-        if (currentPath.startsWith("/product/")) {
-            currentProductId = currentPath.split("/product/")[1];
-        }
+    // Import modular handlers
+    const navigationHandler = useNavigationHandler({ runGeminiText, extractJson, logAction });
+    const productHandler = useProductHandler({ runGeminiText, extractJson, logAction });
+    const filterHandler = useFilterHandler({ runGeminiText, extractJson, logAction });
 
-        let currentProduct = null;
-        if (currentProductId) {
-            currentProduct = products.find(p => p.id === currentProductId);
-        }
+    // Checkout flow for guided payment collection
+    const checkoutFlow = useCheckoutFlow();
+    const speakCallbackRef = useRef<((text: string) => void) | null>(null);
 
-        return {
-            path: currentPath,
-            currentProduct,
-            isProductPage: currentPath.startsWith("/product/"),
-            isCartPage: currentPath === "/cart",
-            isPaymentPage: currentPath === "/payment",
-        };
-    };
+    // Register speak callback for guided flow
+    const registerSpeakCallback = useCallback((callback: (text: string) => void) => {
+        speakCallbackRef.current = callback;
+    }, []);
+
+    const speak = useCallback((text: string) => {
+        if (speakCallbackRef.current) {
+            speakCallbackRef.current(text);
+        }
+        logAction(text);
+    }, [logAction]);
 
     // --- Intent Handlers ---
 
@@ -113,10 +105,7 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         if (lower.includes("checkout") ||
             lower.includes("place order") ||
             lower.includes("complete purchase") ||
-            lower.includes("buy now") ||
-            lower.includes("الدفع") || // Arabic: Payment
-            lower.includes("اكمال الطلب") || // Arabic: Complete order
-            lower.includes("شراء") // Arabic: Buy
+            lower.includes("buy now")
         ) {
             return "order_completion";
         }
@@ -128,303 +117,6 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         } catch (error) {
             console.error("Intent classification error:", error);
             return "general_command";
-        }
-    };
-
-    const handleNavigationCommand = async (transcript: string) => {
-        try {
-            const prompt = prompts.navigationCommand.replace("{transcript}", transcript);
-            const responseText = await runGeminiText(prompt);
-            const cleaned = extractJson(responseText);
-            const response = JSON.parse(cleaned);
-
-            if (response.action === "back") {
-                window.history.back();
-                logAction("Going back");
-                return true;
-            } else if (response.action === "home") {
-                await navigate("/");
-                logAction("Navigating to home");
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error("Navigation error:", error);
-            return false;
-        }
-    };
-
-    const handleCartNavigation = async (transcript: string) => {
-        try {
-            const prompt = prompts.cartNavigation.replace("{transcript}", transcript);
-            const response = (await runGeminiText(prompt)).trim().toLowerCase();
-            if (response === "yes") {
-                await navigate("/cart");
-                logAction("Opening cart");
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error("Cart navigation error:", error);
-            return false;
-        }
-    }
-
-    const handleCategoryNavigation = async (transcript: string) => {
-        try {
-            const prompt = prompts.categoryNavigation.replace("{transcript}", transcript);
-            const responseText = await runGeminiText(prompt);
-            const cleaned = extractJson(responseText);
-            const parsed = JSON.parse(cleaned);
-            const target = parsed.target?.toLowerCase();
-
-            if (target === "gym") {
-                // clearFilters(); // Removed to prevent auto-removal
-                await navigate("/products/gym");
-                logAction("Showing gym products");
-                return true;
-            } else if (target === "yoga") {
-                // clearFilters(); // Removed to prevent auto-removal
-                await navigate("/products/yoga");
-                logAction("Showing yoga products");
-                return true;
-            } else if (target === "running") {
-                // clearFilters(); // Removed to prevent auto-removal
-                await navigate("/products/jogging");
-                logAction("Showing running gear");
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error("Category navigation error:", error);
-            return false;
-        }
-    };
-
-    const handleProductDetailNavigation = async (transcript: string) => {
-        try {
-            const productListText = products
-                .map((p) => `ID: ${p.id} - Name: ${p.name} - Desc: ${p.description.substring(0, 50)}...`)
-                .join("\n");
-
-            const prompt = prompts.productDetailNavigation
-                .replace("{transcript}", transcript)
-                .replace("{productList}", productListText);
-
-            const responseText = await runGeminiText(prompt);
-            const cleaned = extractJson(responseText);
-            const parsed = JSON.parse(cleaned);
-
-            if (parsed.productId) {
-                const product = products.find(p => p.id === parsed.productId);
-                if (product) {
-                    await navigate(`/product/${product.id}`);
-                    logAction(`Navigating to ${product.name}`);
-                    return true;
-                }
-            }
-            return false;
-        } catch (error) {
-            console.error("Product detail nav error:", error);
-            return false;
-        }
-    };
-
-    const handleProductActions = async (transcript: string) => {
-        try {
-            const pageState = getCurrentPageState();
-            let currentProduct = pageState.currentProduct;
-            let productName = currentProduct ? currentProduct.name : "current product";
-            let productSizes = currentProduct ? currentProduct.sizes.join(", ") : "";
-
-            console.log("[Voice Debug] Product Action Context:", { productName, productSizes, transcript });
-
-            const prompt = prompts.productAction
-                .replace("{productName}", productName)
-                .replace("{sizes}", productSizes)
-                .replace("{transcript}", transcript);
-
-            const responseText = await runGeminiText(prompt);
-            const cleaned = extractJson(responseText);
-            const parsed = JSON.parse(cleaned);
-
-            console.log("[Voice Debug] Parsed Product Action:", parsed);
-
-            if (parsed.action === "none") {
-                console.log("[Voice Debug] Action is 'none'");
-                return false;
-            }
-
-            // Context switch check
-            if (parsed.productName) {
-                const targetProduct = products.find(p =>
-                    p.name.toLowerCase().includes(parsed.productName.toLowerCase()) ||
-                    parsed.productName.toLowerCase().includes(p.name.toLowerCase()) ||
-                    (p.nameAr && p.nameAr.toLowerCase().includes(parsed.productName.toLowerCase())) ||
-                    (p.nameAr && parsed.productName.toLowerCase().includes(p.nameAr.toLowerCase()))
-                );
-                if (targetProduct) {
-                    console.log("[Voice Debug] Switching context to product:", targetProduct.name);
-                    currentProduct = targetProduct;
-                }
-            }
-
-            if (!currentProduct) {
-                console.log("[Voice Debug] No current product identified.");
-                return false;
-            }
-
-            if (parsed.action === "size" && parsed.size) {
-                const matchedSize = currentProduct.sizes.find(s => s.toLowerCase() === parsed.size.toLowerCase());
-                if (matchedSize) {
-                    setSelectedSize(matchedSize);
-                    logAction(`Size set to ${matchedSize}`);
-                    return true;
-                }
-                console.log("[Voice Debug] Size mismatch:", parsed.size, "Available:", currentProduct.sizes);
-            }
-
-            if (parsed.action === "quantity" && parsed.quantity) {
-                setQuantity(parsed.quantity);
-                logAction(`Quantity set to ${parsed.quantity}`);
-                return true;
-            }
-
-            if (parsed.action === "addToCart") {
-                console.log("[Voice Debug] Attempting Add to Cart...");
-                let sizeToAdd = selectedSize;
-                // Default size logic if needed
-                if (!sizeToAdd && currentProduct.sizes.length > 0) {
-                    sizeToAdd = currentProduct.sizes[0];
-                    console.log("[Voice Debug] Auto-selected first size:", sizeToAdd);
-                }
-
-                if (sizeToAdd) {
-                    console.log("[Voice Debug] Adding to context cart:", currentProduct.name, sizeToAdd);
-                    addItem({
-                        id: currentProduct.id,
-                        name: currentProduct.name,
-                        price: currentProduct.price,
-                        image: currentProduct.image,
-                        size: sizeToAdd,
-                        quantity: quantity
-                    });
-                    logAction(`Added ${quantity} ${currentProduct.name} to cart`);
-                    return true;
-                } else {
-                    console.log("[Voice Debug] Size required but missing.");
-                    logAction("Please select a size first");
-                    return true;
-                }
-            }
-
-            return true;
-        } catch (error) {
-            console.error("[Voice Debug] Product action error:", error);
-            return false;
-        }
-    };
-
-    const interpretFilterCommand = async (transcript: string) => {
-        try {
-            const prompt = prompts.filterCommand
-                .replace("{transcript}", transcript)
-                .replace("{colors}", filterOptions.colors.join(", "))
-                .replace("{sizes}", filterOptions.sizes.join(", "))
-                .replace("{materials}", filterOptions.materials.join(", "))
-                .replace("{genders}", filterOptions.genders.join(", "))
-                .replace("{brands}", filterOptions.brands.join(", "))
-                .replace("{categories}", filterOptions.subCategories.join(", "));
-
-            const responseText = await runGeminiText(prompt);
-            const cleaned = extractJson(responseText);
-            const parsedFilters = JSON.parse(cleaned);
-
-            const normalizedFilters: Partial<FilterState> = {};
-            let filtersApplied = false;
-
-            // Helper to match enum/options (simplified from previous specific maps but functional)
-            const matchOption = (val: string, options: string[]) => options.find(o => o.toLowerCase() === val.toLowerCase());
-
-            if (parsedFilters.colors && parsedFilters.colors.length) {
-                const colors = parsedFilters.colors.map((c: string) => matchOption(c, filterOptions.colors)).filter(Boolean);
-                if (colors.length) { normalizedFilters.colors = colors; filtersApplied = true; }
-            }
-            if (parsedFilters.sizes && parsedFilters.sizes.length) {
-                const sizes = parsedFilters.sizes.map((c: string) => matchOption(c, filterOptions.sizes)).filter(Boolean);
-                if (sizes.length) { normalizedFilters.sizes = sizes; filtersApplied = true; }
-            }
-            if (parsedFilters.materials && parsedFilters.materials.length) {
-                const mats = parsedFilters.materials.map((c: string) => matchOption(c, filterOptions.materials)).filter(Boolean);
-                if (mats.length) { normalizedFilters.materials = mats; filtersApplied = true; }
-            }
-            if (parsedFilters.brands && parsedFilters.brands.length) {
-                const brands = parsedFilters.brands.map((c: string) => matchOption(c, filterOptions.brands)).filter(Boolean);
-                if (brands.length) { normalizedFilters.brands = brands; filtersApplied = true; }
-            }
-            if (parsedFilters.genders && parsedFilters.genders.length) {
-                const genders = parsedFilters.genders.map((c: string) => matchOption(c, filterOptions.genders)).filter(Boolean);
-                if (genders.length) { normalizedFilters.genders = genders; filtersApplied = true; }
-            }
-            if (parsedFilters.price && Array.isArray(parsedFilters.price)) {
-                normalizedFilters.price = parsedFilters.price;
-                filtersApplied = true;
-            }
-
-            if (filtersApplied) {
-                updateFilters(normalizedFilters);
-                logAction("Filters applied");
-                return true;
-            }
-            return false;
-
-        } catch (error) {
-            console.error("Filter command error:", error);
-            return false;
-        }
-    };
-
-    const handleRemoveFilters = async (transcript: string) => {
-        try {
-            const prompt = prompts.removeFilterCommand
-                .replace("{transcript}", transcript)
-                .replace("{colors}", filterOptions.colors.join(", "))
-                .replace("{sizes}", filterOptions.sizes.join(", "))
-                .replace("{materials}", filterOptions.materials.join(", "))
-                .replace("{genders}", filterOptions.genders.join(", "))
-                .replace("{brands}", filterOptions.brands.join(", "))
-                .replace("{categories}", filterOptions.subCategories.join(", "));
-
-            const responseText = await runGeminiText(prompt);
-            const cleaned = extractJson(responseText);
-            const parsed = JSON.parse(cleaned);
-
-            if (parsed.isRemoveFilter) {
-                // Simple logic: if specific filters mentioned, we'd need a more complex remover.
-                // For now, if removing all or complex mix, rely on existing removeContext methods or just clearAll if appropriate. 
-                // The previous implemention had granular removal. Let's simplify to clearAll or remove specific key if easy.
-                // Actually, useFilters has `removeFilter`.
-                let actionTaken = false;
-
-                // This part is simplified vs huge logical block for brevity, can be expanded if defects found.
-                if (parsed.colors && parsed.colors.length) { parsed.colors.forEach((c: string) => removeFilter('colors', [c])); actionTaken = true; }
-
-                // If no specific action taken but isRemoveFilter is true, maybe clear all?
-                if (!actionTaken && parsed.isRemoveFilter) {
-                    // Check for "all" keywords? Or just return true to indicate we understood but maybe didn't strictly act granularly
-                }
-
-                // Fallback for clear all
-                if (transcript.includes("clear") || transcript.includes("reset") || transcript.includes("remove all")) {
-                    clearFilters();
-                    logAction("All filters cleared");
-                    return true;
-                }
-            }
-            return false;
-        } catch (error) {
-            console.error("Remove filter error:", error);
-            return false;
         }
     };
 
@@ -454,44 +146,17 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         }
     };
 
-    const handleLanguageSwitch = async (transcript: string) => {
-        try {
-            const prompt = prompts.languageSwitch.replace("{transcript}", transcript);
-            const responseText = await runGeminiText(prompt);
-            const cleaned = extractJson(responseText);
-            const parsed = JSON.parse(cleaned);
-
-            if (parsed.language) {
-                if (parsed.language === 'ar') {
-                    setLanguage('ar');
-                    logAction("Switched to Arabic");
-                    return true;
-                } else if (parsed.language === 'en') {
-                    setLanguage('en');
-                    logAction("Switched to English");
-                    return true;
-                }
-            }
-            return false;
-        } catch (error) {
-            console.error("Language switch error:", error);
-            return false;
-        }
-    };
-
     const handleOrderCompletion = async (transcript: string) => {
         try {
-            // Manual check for speed and reliability, bypassing Gemini for obvious commands
+            // Manual check for speed and reliability
             const lower = transcript.toLowerCase();
             if (lower.includes("checkout") ||
                 lower.includes("place order") ||
                 lower.includes("pay") ||
-                lower.includes("buy") ||
-                lower.includes("الدفع") ||
-                lower.includes("شراء")
+                lower.includes("buy")
             ) {
                 if (window.location.pathname === "/payment") {
-                    window.dispatchEvent(new CustomEvent("trigger-order-completion"));
+                    triggerCheckout();
                     logAction("Submitting order");
                 } else {
                     await navigate("/payment");
@@ -505,7 +170,7 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
 
             if (response === "yes") {
                 if (window.location.pathname === "/payment") {
-                    window.dispatchEvent(new CustomEvent("trigger-order-completion"));
+                    triggerCheckout();
                     logAction("Submitting order");
                 } else {
                     await navigate("/payment");
@@ -520,13 +185,28 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         }
     };
 
-
     const processVoiceCommand = async (transcript: string) => {
         console.log("%c[Voice Debug] Processing command:", "color: blue; font-weight: bold", transcript);
 
         // Ignore very short transcripts (noise/false positives)
         if (!transcript || transcript.length < 5) {
             console.log("[Voice Debug] Transcript too short, ignoring.");
+            return;
+        }
+
+        // If checkout flow is active, route to it first
+        if (checkoutFlow.isFlowActive) {
+            console.log("[Voice Debug] Checkout flow active, processing answer");
+            const result = checkoutFlow.processAnswer(transcript);
+
+            if (result.nextPrompt) {
+                speak(result.nextPrompt);
+            }
+
+            if (result.shouldConfirmOrder) {
+                // Trigger the actual order completion
+                triggerCheckout();
+            }
             return;
         }
 
@@ -537,36 +217,33 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
             console.log("%c[Voice Debug] Primary Intent:", "color: green", primaryIntent);
             logAction(`Intent: ${primaryIntent}`);
 
-
             let handled = false;
 
             switch (primaryIntent) {
                 case "navigation":
-                    handled = await handleNavigationCommand(transcript);
+                    handled = await navigationHandler.handleNavigationCommand(transcript);
                     break;
                 case "cart":
-                    handled = await handleCartNavigation(transcript);
+                    handled = await navigationHandler.handleCartNavigation(transcript);
                     break;
                 case "category_navigation":
-                    handled = await handleCategoryNavigation(transcript);
+                    handled = await navigationHandler.handleCategoryNavigation(transcript);
                     break;
                 case "product_navigation":
-                    handled = await handleProductDetailNavigation(transcript);
+                    handled = await navigationHandler.handleProductDetailNavigation(transcript);
                     break;
                 case "product_action":
                     console.log("[Voice Debug] Handling product action...");
-                    handled = await handleProductActions(transcript);
+                    handled = await productHandler.handleProductActions(transcript);
                     break;
                 case "apply_filter":
-                    handled = await interpretFilterCommand(transcript);
+                    handled = await filterHandler.interpretFilterCommand(transcript);
                     break;
                 case "remove_filter":
-                    handled = await handleRemoveFilters(transcript);
+                    handled = await filterHandler.handleRemoveFilters(transcript);
                     break;
                 case "clear_filters":
-                    clearFilters();
-                    logAction("Filters cleared");
-                    handled = true;
+                    handled = filterHandler.handleClearFilters();
                     break;
                 case "user_info":
                     handled = await handleUserInfoUpdate(transcript);
@@ -574,13 +251,11 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
                 case "order_completion":
                     handled = await handleOrderCompletion(transcript);
                     break;
-                case "switch_language":
-                    handled = await handleLanguageSwitch(transcript);
-                    break;
                 default:
                     // Fallback try common ones
                     console.log("[Voice Debug] Intent fell through, trying fallback navigation/cart");
-                    handled = await handleNavigationCommand(transcript) || await handleCartNavigation(transcript);
+                    handled = await navigationHandler.handleNavigationCommand(transcript) ||
+                        await navigationHandler.handleCartNavigation(transcript);
             }
 
             console.log(`%c[Voice Debug] Command handled: ${handled}`, handled ? "color: green" : "color: red");
@@ -595,9 +270,8 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         }
     };
 
-    // Kept for compatibility if needed, but not used by Vapi direction
+    // Kept for compatibility
     const executeTool = async (toolName: string, args: any) => {
-        // Redundant with processVoiceCommand logic now, but kept as placeholder
         return "Legacy tool execution";
     };
 
@@ -606,7 +280,12 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         lastAction,
         actionLog,
         setLastAction,
-        processVoiceCommand, // Export this!
-        executeTool
+        processVoiceCommand,
+        executeTool,
+        // Checkout flow controls
+        checkoutFlow,
+        startCheckoutFlow: checkoutFlow.startFlow,
+        registerSpeakCallback,
+        speak
     };
 };
