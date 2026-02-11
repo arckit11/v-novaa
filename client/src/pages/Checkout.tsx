@@ -107,6 +107,13 @@ export const Checkout = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // If on step 1, voice "submit" means "continue to payment"
+        if (step === 1) {
+            goToPayment();
+            return;
+        }
+
         if (!validateStep2()) return;
 
         setProcessing(true);
