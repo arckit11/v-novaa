@@ -423,4 +423,86 @@ export const prompts = {
     Examples: "navigation", "apply_filter", "category_navigation", etc.
     DO NOT include explanations, JSON formatting, or any other text.
   `,
+
+  checkoutFieldExtraction: `
+    You are an intelligent form field extractor for a checkout process.
+    The user is currently providing their {fieldType} during checkout.
+    
+    User's spoken input: "{transcript}"
+    
+    FIELD TYPES AND EXTRACTION RULES:
+    
+    1. NAME (full name):
+       - Extract ONLY the person's name from speech
+       - Remove phrases like "my name is", "I'm", "call me", "it's", "this is", "my name's"
+       - Capitalize properly (John Smith, not john smith)
+       - Handle common variations and accents
+       - Examples:
+         * "my name is John Smith" → "John Smith"
+         * "I'm Sarah Johnson" → "Sarah Johnson" 
+         * "it's Mohammed Ali" → "Mohammed Ali"
+         * "call me David" → "David"
+         * "this is Robert Williams" → "Robert Williams"
+       - If multiple names are mentioned, extract the most complete one
+       - If unclear, try to extract any reasonable name from the input
+       - Return null only if absolutely no name is detected
+    
+    2. EMAIL:
+       - Extract the email address
+       - Handle spoken format: "at" = @, "dot" = .
+       - Remove spaces, convert to lowercase
+       - Examples:
+         * "my email is john at gmail dot com" → "john@gmail.com"
+         * "it's sarah.jones at yahoo dot com" → "sarah.jones@yahoo.com"
+    
+    3. ADDRESS (shipping address):
+       - Extract the full address
+       - Remove phrases like "my address is", "I live at", "deliver to"
+       - Examples:
+         * "my address is 123 Main Street, New York" → "123 Main Street, New York"
+         * "I live at 45 Oak Avenue, Apartment 7B" → "45 Oak Avenue, Apartment 7B"
+    
+    4. PHONE:
+       - Extract digits only
+       - Convert spoken numbers: "one" = 1, "two" = 2, etc.
+       - Handle "double" and "triple": "double five" = 55
+       - Examples:
+         * "my phone is nine one seven five five five one two three four" → "9175551234"
+         * "it's 555-123-4567" → "5551234567"
+    
+    5. CARD_NAME (name on credit card):
+       - Same rules as NAME
+       - Extract only the cardholder's name
+    
+    6. CARD_NUMBER:
+       - Extract 16 digits
+       - Convert spoken numbers
+       - Examples:
+         * "four one two three four five six seven eight nine zero one two three four five" → "4123 4567 8901 2345"
+    
+    7. EXPIRY_DATE:
+       - Extract month and year
+       - Format as MM/YY
+       - Examples:
+         * "expires December 2025" → "12/25"
+         * "zero three twenty six" → "03/26"
+    
+    8. CVV:
+       - Extract 3-4 digit security code
+       - Examples:
+         * "the CVV is one two three" → "123"
+         * "it's 456" → "456"
+    
+    CRITICAL RULES:
+    - Extract ONLY the relevant data for the current field type
+    - If the user says something unrelated or you cannot extract the value, return: {"extracted": null, "error": "Could not extract {fieldType}"}
+    - Never include conversational phrases in the extracted value
+    - If the user is asking a question or not providing the requested info, return null
+    
+    Return a JSON object:
+    {
+      "extracted": "the extracted value or null",
+      "error": "error message if extraction failed or null"
+    }
+  `,
 };

@@ -104,33 +104,49 @@ export const useProductHandler = ({
 
             if (parsed.action === "addToCart") {
                 console.log("[Voice Debug] Attempting Add to Cart...");
-                let sizeToAdd = selectedSize;
-                // Default size logic if needed
-                if (!sizeToAdd && currentProduct.sizes.length > 0) {
-                    sizeToAdd = currentProduct.sizes[0];
-                    console.log("[Voice Debug] Auto-selected first size:", sizeToAdd);
+
+                // Priority for size: 1) size from voice command, 2) previously selected size, 3) ask user
+                let sizeToAdd: string | null = null;
+
+                // First: use the size Gemini extracted from voice (e.g. "add to cart in large")
+                if (parsed.size) {
+                    const matchedSize = currentProduct.sizes.find(
+                        s => s.toLowerCase() === parsed.size.toLowerCase()
+                    );
+                    if (matchedSize) {
+                        sizeToAdd = matchedSize;
+                        setSelectedSize(matchedSize); // Also update the UI
+                        console.log("[Voice Debug] Using voice-specified size:", matchedSize);
+                    }
                 }
 
-                // Use quantity from voice command OR default to 1 (not the context quantity which may be stale)
+                // Second: fall back to previously selected size from UI/voice
+                if (!sizeToAdd && selectedSize) {
+                    sizeToAdd = selectedSize;
+                    console.log("[Voice Debug] Using previously selected size:", sizeToAdd);
+                }
+
+                // Third: if still no size, ask the user instead of auto-picking smallest
+                if (!sizeToAdd) {
+                    console.log("[Voice Debug] No size specified, asking user.");
+                    logAction("Please select a size first. Available sizes: " + currentProduct.sizes.join(", "));
+                    return true;
+                }
+
+                // Use quantity from voice command OR default to 1
                 const quantityToAdd = parsed.quantity || 1;
 
-                if (sizeToAdd) {
-                    console.log("[Voice Debug] Adding to cart:", currentProduct.name, sizeToAdd, "qty:", quantityToAdd);
-                    addItem({
-                        id: currentProduct.id,
-                        name: currentProduct.name,
-                        price: currentProduct.price,
-                        image: currentProduct.image,
-                        size: sizeToAdd,
-                        quantity: quantityToAdd
-                    });
-                    logAction(`Added ${quantityToAdd} ${currentProduct.name} to cart`);
-                    return true;
-                } else {
-                    console.log("[Voice Debug] Size required but missing.");
-                    logAction("Please select a size first");
-                    return true;
-                }
+                console.log("[Voice Debug] Adding to cart:", currentProduct.name, sizeToAdd, "qty:", quantityToAdd);
+                addItem({
+                    id: currentProduct.id,
+                    name: currentProduct.name,
+                    price: currentProduct.price,
+                    image: currentProduct.image,
+                    size: sizeToAdd,
+                    quantity: quantityToAdd
+                });
+                logAction(`Added ${quantityToAdd} ${currentProduct.name} (${sizeToAdd}) to cart`);
+                return true;
             }
 
             return true;

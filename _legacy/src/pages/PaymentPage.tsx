@@ -179,17 +179,20 @@ const PaymentPage = () => {
   };
 
   // Register checkout handler for voice commands
+  // Use useCallback to create a stable reference to handlePayment
+  const handleCheckout = useCallback(() => {
+    console.log("Checkout triggered via CartContext!");
+    handlePayment();
+  }, [handlePayment]);
+
   useEffect(() => {
-    registerCheckoutHandler(() => {
-      console.log("Checkout triggered via CartContext!");
-      handlePayment();
-    });
+    registerCheckoutHandler(handleCheckout);
 
     return () => {
       // Cleanup: unregister by passing empty function
       registerCheckoutHandler(() => { });
     };
-  }, [formData, paymentMethod, registerCheckoutHandler]);
+  }, [handleCheckout, registerCheckoutHandler]);
 
 
   return (

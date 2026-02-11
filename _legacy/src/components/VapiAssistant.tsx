@@ -22,6 +22,10 @@ const VapiAssistantComponent = () => {
   const isInitialMountRef = useRef(true);
   const wasActiveRef = useRef(false);
   const hasStartedCheckoutFlowRef = useRef(false);
+  const isAssistantSpeakingRef = useRef(false);
+  const lastSpeechEndTimeRef = useRef(0);
+  const speechStartTimeRef = useRef(0);
+  const echoGuardDurationRef = useRef(4000); // Dynamic echo guard duration in ms
 
   const ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID;
 
@@ -49,6 +53,18 @@ const VapiAssistantComponent = () => {
     registerSpeakCallback((text: string) => {
       console.log(`[VapiAssistant] Speaking: ${text}`);
       if (vapiRef.current && isSessionActive) {
+        // Mark that we're about to speak to prevent echo
+        isAssistantSpeakingRef.current = true;
+        speechStartTimeRef.current = Date.now();
+        lastSpeechEndTimeRef.current = 0; // Reset to allow the echo buffer to work
+
+        // Calculate dynamic echo guard based on text length
+        // Rough estimate: ~150ms per word spoken
+        const wordCount = text.split(/\s+/).length;
+        const estimatedSpeechDuration = Math.max(wordCount * 150, 2000);
+        echoGuardDurationRef.current = estimatedSpeechDuration + 3000; // speech duration + 3s buffer
+        console.log(`[VapiAssistant] Echo guard set to ${echoGuardDurationRef.current}ms for ${wordCount} words`);
+
         // Use Vapi's send method to make the assistant speak
         vapiRef.current.send({
           type: "add-message",
@@ -114,6 +130,7 @@ const VapiAssistantComponent = () => {
       console.log(`[VapiAssistant ${instanceId}] Call started`);
       setIsSessionActive(true);
       setIsSpeechActive(false);
+      wasActiveRef.current = true; // Mark as active so reconnection works
       reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful start
     });
 
@@ -122,53 +139,67 @@ const VapiAssistantComponent = () => {
       setIsSessionActive(false);
       setIsSpeechActive(false);
 
-      // Attempt to reconnect if the call was active unexpectedly ended
-      if (wasActiveRef.current && reconnectAttemptsRef.current < 3) {
-        console.log(`[VapiAssistant ${instanceId}] Attempting to reconnect (attempt ${reconnectAttemptsRef.current + 1}/3)...`);
-        reconnectAttemptsRef.current += 1;
+      // Automatically reconnect if the call was active and unexpectedly ended
+      // No limit on reconnection attempts - keep the call alive throughout the session
+      if (wasActiveRef.current) {
+        console.log(`[VapiAssistant ${instanceId}] Call unexpectedly ended, attempting to reconnect...`);
 
         reconnectTimeoutRef.current = setTimeout(() => {
           if (ASSISTANT_ID && vapiRef.current) {
             vapiRef.current.start(ASSISTANT_ID).catch((error: any) => {
               console.error(`[VapiAssistant ${instanceId}] Reconnection failed:`, error);
+              // Try again after a delay
+              if (wasActiveRef.current) {
+                reconnectTimeoutRef.current = setTimeout(() => {
+                  if (ASSISTANT_ID && vapiRef.current) {
+                    vapiRef.current.start(ASSISTANT_ID).catch(() => { });
+                  }
+                }, 3000);
+              }
             });
           }
         }, 1000); // Wait 1 second before reconnecting
-      }
-
-      // Clear instance reference on manual stop to prevent zombie connections
-      if (!wasActiveRef.current) {
-        vapiRef.current = null;
-        reconnectAttemptsRef.current = 0;
       }
     });
 
     vapi.on("speech-start", () => {
       setIsSpeechActive(true);
+      isAssistantSpeakingRef.current = true;
+      speechStartTimeRef.current = Date.now();
+      console.log(`[VapiAssistant ${instanceId}] Assistant started speaking`);
     });
 
     vapi.on("speech-end", () => {
       setIsSpeechActive(false);
+      lastSpeechEndTimeRef.current = Date.now();
+
+      // Calculate how long the assistant was speaking
+      const speechDuration = Date.now() - speechStartTimeRef.current;
+      // Set echo guard: longer speech = longer echo guard (min 3s, max 8s)
+      const dynamicGuard = Math.min(Math.max(speechDuration + 2000, 3000), 8000);
+      echoGuardDurationRef.current = dynamicGuard;
+
+      console.log(`[VapiAssistant ${instanceId}] Assistant spoke for ${speechDuration}ms, echo guard: ${dynamicGuard}ms`);
+
+      // Delay clearing the speaking flag based on dynamic guard
+      setTimeout(() => {
+        isAssistantSpeakingRef.current = false;
+        console.log(`[VapiAssistant ${instanceId}] Echo guard cleared after ${dynamicGuard}ms`);
+      }, dynamicGuard);
     });
 
     vapi.on("error", (error: any) => {
       console.error(`[VapiAssistant ${instanceId}] Vapi Error:`, JSON.stringify(error, null, 2));
 
-      const errorMsg = error?.error?.msg || error?.message || "Unknown error";
+      const errorMsg = error?.error?.msg || error?.error?.errorMsg || error?.message || "Unknown error";
+      const errorType = error?.type || error?.error?.type || "";
 
-      // Handle known startup errors
-      // expanded check to catch more variations of ejection or auth errors
-      if (
-        (error?.type === 'daily-error') ||
-        (errorMsg.includes('ejection')) ||
-        (errorMsg.includes('401'))
-      ) {
-        console.error("CRITICAL: Vapi connection rejected/failed. Checking credentials...");
-        reconnectAttemptsRef.current = 999; // Prevent reconnection attempts
+      // Handle critical auth errors - only stop on actual auth failures
+      if (errorMsg.includes('401') || errorMsg.toLowerCase().includes('unauthorized') || errorMsg.toLowerCase().includes('invalid api key')) {
+        console.error("CRITICAL: Vapi authentication failed. Please check your API key.");
         setIsSessionActive(false);
         setIsSpeechActive(false);
-
-        // If we are in the reconnection loop, kill it
+        wasActiveRef.current = false;
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;
@@ -179,31 +210,98 @@ const VapiAssistantComponent = () => {
       setIsSessionActive(false);
       setIsSpeechActive(false);
 
-      // Attempt to reconnect on non-auth errors
-      if (reconnectAttemptsRef.current < 3) {
-        console.log(`[VapiAssistant ${instanceId}] Attempting to reconnect after error (attempt ${reconnectAttemptsRef.current + 1}/3)...`);
-        reconnectAttemptsRef.current += 1;
+      // Handle meeting ejection/ended - this is common and we should always reconnect
+      const isEjectionError = errorType === 'daily-error' ||
+        errorMsg.toLowerCase().includes('ejection') ||
+        errorMsg.toLowerCase().includes('meeting has ended') ||
+        errorMsg.toLowerCase().includes('ejected');
+
+      if (isEjectionError) {
+        console.log(`[VapiAssistant ${instanceId}] Meeting ejection detected, will reconnect...`);
+      } else {
+        console.log(`[VapiAssistant ${instanceId}] Non-critical error, will attempt reconnection...`);
+      }
+
+      // Always reconnect if the call was supposed to be active
+      if (wasActiveRef.current) {
+        // Clear any existing reconnection timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+
+        // Use shorter delay for ejection errors since they're expected
+        const reconnectDelay = isEjectionError ? 1500 : 3000;
 
         reconnectTimeoutRef.current = setTimeout(() => {
-          if (ASSISTANT_ID && vapiRef.current) {
-            vapiRef.current.start(ASSISTANT_ID).catch((err: any) => {
-              console.error(`[VapiAssistant ${instanceId}] Reconnection after error failed:`, err);
+          console.log(`[VapiAssistant ${instanceId}] Attempting reconnection...`);
+          if (ASSISTANT_ID && vapiRef.current && wasActiveRef.current) {
+            vapiRef.current.start(ASSISTANT_ID).then(() => {
+              console.log(`[VapiAssistant ${instanceId}] Reconnection successful!`);
+            }).catch((err: any) => {
+              console.error(`[VapiAssistant ${instanceId}] Reconnection failed:`, err);
+              // Retry with exponential backoff
+              if (wasActiveRef.current) {
+                const retryDelay = Math.min(reconnectDelay * 2, 10000);
+                console.log(`[VapiAssistant ${instanceId}] Will retry in ${retryDelay}ms...`);
+                reconnectTimeoutRef.current = setTimeout(() => {
+                  if (ASSISTANT_ID && vapiRef.current && wasActiveRef.current) {
+                    vapiRef.current.start(ASSISTANT_ID).catch(() => {
+                      // Keep trying with longer delays
+                      if (wasActiveRef.current) {
+                        reconnectTimeoutRef.current = setTimeout(() => {
+                          if (ASSISTANT_ID && vapiRef.current && wasActiveRef.current) {
+                            vapiRef.current.start(ASSISTANT_ID).catch(() => { });
+                          }
+                        }, 15000);
+                      }
+                    });
+                  }
+                }, retryDelay);
+              }
             });
           }
-        }, 3000); // Wait 3 seconds before reconnecting after error
+        }, reconnectDelay);
       }
     });
 
     // Listen for transcripts instead of tool calls
+    // Only process USER transcripts to prevent echo from assistant's own voice
     vapi.on("message", async (message: any) => {
       if (message.type === "transcript" && message.transcriptType === "final") {
         const transcriptText = message.transcript;
-        console.log(`[VapiAssistant ${instanceId}] Final transcript:`, transcriptText);
+        const role = message.role;
+
+        console.log(`[VapiAssistant ${instanceId}] Final transcript (role: ${role}):`, transcriptText);
+
+        // Only process user transcripts, ignore assistant/bot transcripts
+        if (role !== "user") {
+          console.log(`[VapiAssistant ${instanceId}] Ignoring non-user transcript (role: ${role})`);
+          return;
+        }
+
+        // Skip if assistant is currently speaking (echo prevention)
+        if (isAssistantSpeakingRef.current) {
+          console.log(`[VapiAssistant ${instanceId}] Ignoring transcript while assistant is speaking`);
+          return;
+        }
+
+        // Dynamic echo prevention: check if we're within the echo guard window after speech ending
+        // This prevents Vapi from listening to its own audio coming back through the mic
+        const timeSinceSpeechEnd = Date.now() - lastSpeechEndTimeRef.current;
+        const currentEchoGuard = echoGuardDurationRef.current;
+        if (timeSinceSpeechEnd < currentEchoGuard && lastSpeechEndTimeRef.current > 0) {
+          console.log(`[VapiAssistant ${instanceId}] Ignoring transcript ${timeSinceSpeechEnd}ms after speech (echo guard: ${currentEchoGuard}ms)`);
+          return;
+        }
+
+        // Ignore very short transcripts that might be audio artifacts
+        if (!transcriptText || transcriptText.length < 3) {
+          console.log(`[VapiAssistant ${instanceId}] Ignoring short transcript (length: ${transcriptText?.length || 0})`);
+          return;
+        }
 
         // Pass the transcript to our client-side Gemini logic
-        if (transcriptText) {
-          await processVoiceCommandRef.current(transcriptText);
-        }
+        await processVoiceCommandRef.current(transcriptText);
       }
     });
 
@@ -211,11 +309,32 @@ const VapiAssistantComponent = () => {
       // Auto-start on initial mount
       if (isInitialMountRef.current) {
         console.log(`[VapiAssistant ${instanceId}] Auto-starting session with ID: ${ASSISTANT_ID.slice(0, 8)}...`);
+        wasActiveRef.current = true; // Set this BEFORE starting so reconnection works
         setTimeout(() => {
           vapi.start(ASSISTANT_ID).catch((error: any) => {
             console.error(`[VapiAssistant ${instanceId}] Failed to auto-start Vapi:`, error);
             setIsSessionActive(false);
-            reconnectAttemptsRef.current = 0;
+
+            // Explicitly trigger reconnection since initial start failed
+            if (wasActiveRef.current) {
+              console.log(`[VapiAssistant ${instanceId}] Auto-start failed, scheduling fast retry...`);
+
+              if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+              }
+
+              reconnectTimeoutRef.current = setTimeout(() => {
+                if (ASSISTANT_ID && vapiRef.current && wasActiveRef.current) {
+                  console.log(`[VapiAssistant ${instanceId}] Retrying initial connection...`);
+                  vapiRef.current.start(ASSISTANT_ID).catch((e: any) => {
+                    console.error(`[VapiAssistant ${instanceId}] Initial retry failed:`, e);
+                    // The error listener should pick up subsequent failures, 
+                    // or the user can manually toggle. 
+                    // We rely on the error listener for the loop mostly.
+                  });
+                }
+              }, 1500);
+            }
           });
         }, 100);
       }

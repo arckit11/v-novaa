@@ -24,15 +24,30 @@ const callGeminiWithFallback = async <T,>(
     action: (model: ReturnType<typeof genAI.getGenerativeModel>) => Promise<T>
 ): Promise<T> => {
     let lastError: any = null;
+    const maxRetries = 3;
+    const baseDelay = 1000;
 
-    for (const modelName of GEMINI_MODELS) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const model = genAI.getGenerativeModel({ model: modelName });
-            return await action(model);
+            for (const modelName of GEMINI_MODELS) {
+                const model = genAI.getGenerativeModel({ model: modelName });
+                return await action(model);
+            }
         } catch (error: any) {
             lastError = error;
-            console.warn(`Gemini model ${modelName} failed.`, error);
-            if (modelName === GEMINI_MODELS[GEMINI_MODELS.length - 1]) throw error;
+            console.warn(`Gemini failed (attempt ${attempt}/${maxRetries}).`, error);
+
+            // Check if it's a rate limit error
+            if (error.message?.includes('429') || error.message?.includes('Resource exhausted')) {
+                if (attempt < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+                    console.log(`[VoiceCommandHandlers] Rate limit hit, retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+            }
+
+            if (attempt === maxRetries) throw error;
         }
     }
     throw lastError;
@@ -84,6 +99,7 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
     // Checkout flow for guided payment collection
     const checkoutFlow = useCheckoutFlow();
     const speakCallbackRef = useRef<((text: string) => void) | null>(null);
+    const lastSpeakTimeRef = useRef(0);
 
     // Register speak callback for guided flow
     const registerSpeakCallback = useCallback((callback: (text: string) => void) => {
@@ -91,6 +107,17 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
     }, []);
 
     const speak = useCallback((text: string) => {
+        // Prevent rapid-fire responses that could cause feedback loops
+        const now = Date.now();
+        const timeSinceLastSpeak = now - lastSpeakTimeRef.current;
+
+        if (timeSinceLastSpeak < 500) {
+            console.log("[VoiceCommandHandlers] Throttling rapid speak request");
+            return;
+        }
+
+        lastSpeakTimeRef.current = now;
+
         if (speakCallbackRef.current) {
             speakCallbackRef.current(text);
         }
@@ -108,6 +135,13 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
             lower.includes("buy now")
         ) {
             return "order_completion";
+        }
+
+        // IMPORTANT: If checkout flow is active, don't classify as user_info
+        // Let the checkout flow handle all responses
+        if (checkoutFlow.isFlowActive) {
+            console.log("[Voice Debug] Checkout flow active, bypassing intent classification");
+            return "checkout_flow_active";
         }
 
         try {
@@ -185,6 +219,9 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
         }
     };
 
+    // Processing lock to prevent concurrent command handling
+    const isProcessingCommandRef = useRef(false);
+
     const processVoiceCommand = async (transcript: string) => {
         console.log("%c[Voice Debug] Processing command:", "color: blue; font-weight: bold", transcript);
 
@@ -194,79 +231,113 @@ export const useVoiceCommandHandlers = ({ onRequestRestart }: UseVoiceCommandHan
             return;
         }
 
-        // If checkout flow is active, route to it first
-        if (checkoutFlow.isFlowActive) {
-            console.log("[Voice Debug] Checkout flow active, processing answer");
-            const result = checkoutFlow.processAnswer(transcript);
-
-            if (result.nextPrompt) {
-                speak(result.nextPrompt);
-            }
-
-            if (result.shouldConfirmOrder) {
-                // Trigger the actual order completion
-                triggerCheckout();
-            }
+        // Prevent concurrent processing - if we're already handling a command, drop this one
+        if (isProcessingCommandRef.current) {
+            console.log("[Voice Debug] Already processing a command, dropping this transcript.");
             return;
         }
 
-        logAction(`Processing: "${transcript}"`);
+        isProcessingCommandRef.current = true;
 
         try {
-            const primaryIntent = await classifyPrimaryIntent(transcript);
-            console.log("%c[Voice Debug] Primary Intent:", "color: green", primaryIntent);
-            logAction(`Intent: ${primaryIntent}`);
+            // ========================================================
+            // CHECKOUT FLOW LOCK: When checkout is active, ALL voice
+            // input goes ONLY to the checkout flow. No intent 
+            // classification, no navigation, no category switching.
+            // This prevents Vapi from hearing itself and navigating
+            // to random pages during the checkout conversation.
+            // ========================================================
+            if (checkoutFlow.isFlowActive) {
+                console.log("[Voice Debug] ===== CHECKOUT FLOW LOCKED =====");
+                console.log("[Voice Debug] Routing ALL input to checkout flow, blocking everything else");
 
-            let handled = false;
+                const result = await checkoutFlow.processAnswer(transcript);
 
-            switch (primaryIntent) {
-                case "navigation":
-                    handled = await navigationHandler.handleNavigationCommand(transcript);
-                    break;
-                case "cart":
-                    handled = await navigationHandler.handleCartNavigation(transcript);
-                    break;
-                case "category_navigation":
-                    handled = await navigationHandler.handleCategoryNavigation(transcript);
-                    break;
-                case "product_navigation":
-                    handled = await navigationHandler.handleProductDetailNavigation(transcript);
-                    break;
-                case "product_action":
-                    console.log("[Voice Debug] Handling product action...");
-                    handled = await productHandler.handleProductActions(transcript);
-                    break;
-                case "apply_filter":
-                    handled = await filterHandler.interpretFilterCommand(transcript);
-                    break;
-                case "remove_filter":
-                    handled = await filterHandler.handleRemoveFilters(transcript);
-                    break;
-                case "clear_filters":
-                    handled = filterHandler.handleClearFilters();
-                    break;
-                case "user_info":
-                    handled = await handleUserInfoUpdate(transcript);
-                    break;
-                case "order_completion":
-                    handled = await handleOrderCompletion(transcript);
-                    break;
-                default:
-                    // Fallback try common ones
-                    console.log("[Voice Debug] Intent fell through, trying fallback navigation/cart");
-                    handled = await navigationHandler.handleNavigationCommand(transcript) ||
-                        await navigationHandler.handleCartNavigation(transcript);
+                if (result.nextPrompt) {
+                    speak(result.nextPrompt);
+                }
+
+                if (result.shouldConfirmOrder) {
+                    triggerCheckout();
+                }
+
+                console.log("[Voice Debug] ===== CHECKOUT FLOW DONE =====");
+                return; // HARD RETURN - nothing else processes
             }
 
-            console.log(`%c[Voice Debug] Command handled: ${handled}`, handled ? "color: green" : "color: red");
+            logAction(`Processing: "${transcript}"`);
 
-            if (!handled) {
-                logAction("Command not recognized");
+            try {
+                const primaryIntent = await classifyPrimaryIntent(transcript);
+                console.log("%c[Voice Debug] Primary Intent:", "color: green", primaryIntent);
+                logAction(`Intent: ${primaryIntent}`);
+
+                let handled = false;
+
+                // Double-check: if checkout flow became active during classification, route to it
+                if (primaryIntent === "checkout_flow_active" || checkoutFlow.isFlowActive) {
+                    console.log("[Voice Debug] Checkout flow active (post-classification), routing to checkout");
+                    const result = await checkoutFlow.processAnswer(transcript);
+                    if (result.nextPrompt) {
+                        speak(result.nextPrompt);
+                    }
+                    if (result.shouldConfirmOrder) {
+                        triggerCheckout();
+                    }
+                    return;
+                }
+
+                switch (primaryIntent) {
+                    case "navigation":
+                        handled = await navigationHandler.handleNavigationCommand(transcript);
+                        break;
+                    case "cart":
+                        handled = await navigationHandler.handleCartNavigation(transcript);
+                        break;
+                    case "category_navigation":
+                        handled = await navigationHandler.handleCategoryNavigation(transcript);
+                        break;
+                    case "product_navigation":
+                        handled = await navigationHandler.handleProductDetailNavigation(transcript);
+                        break;
+                    case "product_action":
+                        console.log("[Voice Debug] Handling product action...");
+                        handled = await productHandler.handleProductActions(transcript);
+                        break;
+                    case "apply_filter":
+                        handled = await filterHandler.interpretFilterCommand(transcript);
+                        break;
+                    case "remove_filter":
+                        handled = await filterHandler.handleRemoveFilters(transcript);
+                        break;
+                    case "clear_filters":
+                        handled = filterHandler.handleClearFilters();
+                        break;
+                    case "user_info":
+                        handled = await handleUserInfoUpdate(transcript);
+                        break;
+                    case "order_completion":
+                        handled = await handleOrderCompletion(transcript);
+                        break;
+                    default:
+                        // Fallback try common ones
+                        console.log("[Voice Debug] Intent fell through, trying fallback navigation/cart");
+                        handled = await navigationHandler.handleNavigationCommand(transcript) ||
+                            await navigationHandler.handleCartNavigation(transcript);
+                }
+
+                console.log(`%c[Voice Debug] Command handled: ${handled}`, handled ? "color: green" : "color: red");
+
+                if (!handled) {
+                    logAction("Command not recognized");
+                }
+
+            } catch (error) {
+                console.error("[Voice Debug] Error processing voice command:", error);
+                logAction("Error processing command", false);
             }
-
-        } catch (error) {
-            console.error("[Voice Debug] Error processing voice command:", error);
-            logAction("Error processing command", false);
+        } finally {
+            isProcessingCommandRef.current = false;
         }
     };
 
